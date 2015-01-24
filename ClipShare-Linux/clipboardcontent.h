@@ -4,6 +4,7 @@
 #include <QClipboard>
 #include <QString>
 #include <QMimeData>
+#include <QStringList>
 
 #include <iostream>
 
@@ -14,6 +15,8 @@ public:
 		mode(m)
 	{
 		const QMimeData * mimeData = clipboard->mimeData(mode);
+
+		formats = mimeData->formats();
 
 		if(mimeData->hasHtml()) {
 			hasHtmlBool = true;
@@ -47,11 +50,14 @@ public:
 private:
 	QClipboard::Mode mode;
 
+	QStringList formats;
+
 	bool hasTextBool = false;
 	QString text;
 
 	bool hasHtmlBool = false;
 	QString html;
+
 };
 
 #endif // CLIPBOARDCONTENT_H

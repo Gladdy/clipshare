@@ -10,6 +10,8 @@ class TcpClient : public QObject
 public:
 	TcpClient(QString hostname, int port, QObject * parent = 0);
 	~TcpClient();
+	void updateConnectString(QString username, QString password);
+	void initConnection();
 
 signals:
 	void readFromSocket(const QString& data);
@@ -25,9 +27,9 @@ public slots:
 private:	
 	QTcpSocket * socket;
 
-	void initConnection();
-
 	int networkTimeout = 1000; //milliseconds
+
+	QString connectString = "";
 
 	QString hostname;
 	int port;

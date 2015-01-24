@@ -8,6 +8,8 @@
 #include <QApplication>
 #include <QClipboard>
 
+#include <thread>
+
 class ClipboardContent;
 
 class ClipShareRunner : public QObject
@@ -15,7 +17,7 @@ class ClipShareRunner : public QObject
 	Q_OBJECT
 public:
 	ClipShareRunner(QClipboard * app, QObject *parent = 0);
-	~ClipShareRunner() {}
+	~ClipShareRunner();
 
 signals:
 	void writeToSocket(const QString&);
@@ -29,6 +31,9 @@ private:
 	QClipboard * clipboard;
 
 	void processClipboardContent(const ClipboardContent&);
+
+	const QString configFilename = "config.cfg";
+	void processConfigFile();
 };
 
 #endif // CLIPSHARERUNNER_H

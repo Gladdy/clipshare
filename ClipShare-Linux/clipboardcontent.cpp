@@ -1,6 +1,12 @@
 #include "clipboardcontent.h"
 
 std::ostream& operator<< (std::ostream &out, ClipboardContent &c) {
+
+	for(QString s : c.formats) {
+		out << s.toStdString() << "\t";
+	}
+
+
 	if(c.hasTextBool && c.text.length()) {
 		QString t = c.text;
 		t.replace(QString("\n"),QString(""));
