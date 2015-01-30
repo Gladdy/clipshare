@@ -3,37 +3,40 @@
 
 #include <QObject>
 #include <QTcpSocket>
+#include <QMutex>
 
 class TcpClient : public QObject
 {
-	Q_OBJECT
+    Q_OBJECT
 public:
-	TcpClient(QString hostname, int port, QObject * parent = 0);
-	~TcpClient();
-	void updateConnectString(QString username, QString password);
-	void initConnection();
+    TcpClient(QObject * parent = 0);
+    ~TcpClient();
+    void updateConnectInfo(QString username, QString password, QString hostname, int port);
+    void initConnection();
 
 signals:
-	void readFromSocket(const QString& data);
+    void readFromSocket(QString);
 
 public slots:
-	void writeToSocket(const QString&);
+    void writeToSocket(QString);
 
-	void connected();
-	void disconnected();
-	void bytesWritten(qint64 bytes);
-	void readyRead();
+    void connected();
+    void disconnected();
+    void bytesWritten(qint64 bytes);
+    void readyRead();
 
 private:	
-	QTcpSocket * socket;
+    QTcpSocket * socket;
 
-	int networkTimeout = 1000; //milliseconds
+    int networkTimeout = 10000; //milliseconds
 
-	QString connectString = "";
+    QString connectString;
+    QString hostname;
+    int port;
+    bool connectedFlag = false;
 
-	QString hostname;
-	int port;
-	bool connectedFlag = false;
+    QByteArray readBuffer;
+    bool isValidJSON(QByteArray);
 };
 
 #endif // TCPCLIENT_H

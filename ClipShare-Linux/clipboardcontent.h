@@ -2,62 +2,29 @@
 #define CLIPBOARDCONTENT_H
 
 #include <QClipboard>
+#include <QApplication>
 #include <QString>
 #include <QMimeData>
 #include <QStringList>
 
-#include <iostream>
 
 class ClipboardContent {
 public:
 	ClipboardContent() {}
-	ClipboardContent(QClipboard::Mode m, QClipboard * clipboard) :
-		mode(m)
+	ClipboardContent(QClipboard::Mode m, QApplication * a, QStringList * st) :
+		mode(m),
+		app(a),
+		supportedTypes(st)
 	{
-		const QMimeData * mimeData = clipboard->mimeData(mode);
-
-		formats = mimeData->formats();
-
-		if(mimeData->hasHtml()) {
-			hasHtmlBool = true;
-			html = mimeData->html();
-		}
-
-		if(mimeData->hasText()) {
-			hasTextBool = true;
-			text = mimeData->text();
-		}
 	}
+	QString toJSONString();
 	~ClipboardContent() {}
-	ClipboardContent(const ClipboardContent& other) {
-		this->mode = other.mode;
-		this->hasTextBool = other.hasTextBool;
-		this->text = other.text;
-		this->hasHtmlBool = other.hasHtmlBool;
-		this->html = other.html;
-	}
-
-	bool hasText() const { return hasTextBool; }
-	bool hasHtml() const { return hasHtmlBool; }
-	QString getText() const { return hasTextBool ? text : ""; }
-	QString getHtml() const { return hasHtmlBool ? html : ""; }
-
-	friend std::ostream& operator<< (std::ostream &out, ClipboardContent &c);
-
-	bool operator ==(const ClipboardContent& rhs);
-	bool operator !=(const ClipboardContent& rhs);
 
 private:
 	QClipboard::Mode mode;
-
-	QStringList formats;
-
-	bool hasTextBool = false;
-	QString text;
-
-	bool hasHtmlBool = false;
-	QString html;
-
+	QApplication * app;
+	QStringList* supportedTypes;
 };
+
 
 #endif // CLIPBOARDCONTENT_H

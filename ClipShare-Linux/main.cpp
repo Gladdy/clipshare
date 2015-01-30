@@ -1,11 +1,10 @@
 #include "clipsharerunner.h"
 #include <QApplication>
 
-int main(int argc, char *argv[])
+int main(int argc, char** argv)
 {
-	QApplication a(argc, argv);
-
-	ClipShareRunner csr (a.clipboard());
-
-	return a.exec();
+	QApplication * app = new QApplication(argc, argv);
+	ClipShareRunner * csr = new ClipShareRunner(app);
+	csr->initialize();
+	return app->exec();
 }

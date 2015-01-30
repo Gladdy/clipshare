@@ -7,36 +7,34 @@
 #include <QJsonValue>
 #include <QJsonDocument>
 #include <QFile>
+#include <QStringList>
 
 #include <iostream>
 
 
-ClipShareRunner::ClipShareRunner(QClipboard * qc, QObject * parent) :
-	QObject(parent),
-	clipboard(qc)
+ClipShareRunner::ClipShareRunner(QApplication *a, QObject * p) :
+	QObject(p),
+	app(a)
 {
-	tcpclient = new TcpClient("192.168.2.68", 1337, this);
+	tcpclient = new TcpClient(this);
+	mimeData = new QMimeData();
 
-	connect(clipboard,SIGNAL(dataChanged()),this,SLOT(processClipboardChange()));
+	connect(app->clipboard(),SIGNAL(dataChanged()),this,SLOT(processClipboardChange()));
 
 	connect(this,SIGNAL(writeToSocket(QString)),tcpclient,SLOT(writeToSocket(QString)));
 	connect(tcpclient,SIGNAL(readFromSocket(QString)),this,SLOT(readFromSocket(QString)));
-
-	processConfigFile();
-
-	tcpclient->initConnection();
 }
-ClipShareRunner::~ClipShareRunner() {
-	delete tcpclient;
+void ClipShareRunner::initialize() {
+	processConfigFile();
+	tcpclient->initConnection();
 }
 
 void ClipShareRunner::processClipboardChange()
 {
-	ClipboardContent cc (QClipboard::Clipboard,clipboard);
+	ClipboardContent cc (QClipboard::Clipboard,app, &supportedTypes);
+	QString clipboardJSON = cc.toJSONString();
 
-	std::cout << cc << std::endl;
-
-	processClipboardContent(cc);
+	emit writeToSocket(clipboardJSON);
 }
 
 void ClipShareRunner::processConfigFile()
@@ -56,38 +54,50 @@ void ClipShareRunner::processConfigFile()
 
 		if(configJSONDoc.isNull()) {
 			std::cerr << "invalid config file" << std::endl;
-
 			exit(1);
 		}
 
 		QJsonObject configJSON = configJSONDoc.object();
 
-		if(configJSON.contains("username") && configJSON.contains("password"))
+		if(configJSON.contains("username") && configJSON.contains("password") && configJSON.contains("hostname") && configJSON.contains("port"))
 		{
 			QString username = configJSON["username"].toString();
 			QString password = configJSON["password"].toString();
-			tcpclient->updateConnectString(username,password);
+			QString hostname = configJSON["hostname"].toString();
+			int port = configJSON["port"].toInt();
+
+			tcpclient->updateConnectInfo(username,password,hostname,port);
+		}
+		else
+		{
+			std::cerr << "invalid connection info in config file" << std::endl;
+			exit(1);
 		}
 	}
 }
 
-void ClipShareRunner::processClipboardContent(const ClipboardContent& cc)
+void ClipShareRunner::readFromSocket(QString str)
 {
-	QJsonObject json;
+	qDebug() << "reading";
+	mimeData->clear();
 
-	if(cc.hasText()) { json.insert("text", cc.getText()); }
-	if(cc.hasHtml()) { json.insert("html", cc.getHtml()); }
+	qDebug() << "cleared mimedata";
 
-	if(json.count() > 0)
-	{
-		QJsonDocument doc (json);
-		QByteArray jsonData = doc.toJson();
-		QString jsonString (jsonData);
+	QByteArray strData = str.toLatin1();
+	QJsonDocument strJsonDoc = QJsonDocument::fromJson(strData);
 
-		emit writeToSocket(jsonString);
+	QJsonObject strJsonObject = strJsonDoc.object();
+
+	for(QString type : supportedTypes) {
+		if(strJsonObject.contains(type)) {
+			QByteArray data = strJsonObject[type].toString().toLatin1();
+			mimeData->setData(type, data);
+		}
 	}
-}
 
-void ClipShareRunner::readFromSocket(const QString& str) {
-	std::cout << "clipsharerunner: " << str.toStdString() << std::endl;
+	qDebug() << "parsed json and added to mimedata";
+
+	app->clipboard()->setMimeData(mimeData);
+
+	qDebug() << "updated the apps clipboard";
 }

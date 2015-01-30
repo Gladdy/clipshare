@@ -1,37 +1,46 @@
 #include "clipboardcontent.h"
 
-std::ostream& operator<< (std::ostream &out, ClipboardContent &c) {
+#include <QJsonObject>
+#include <QJsonDocument>
+#include <QVariant>
+#include <QImage>
+#include <QBuffer>
 
-	for(QString s : c.formats) {
-		out << s.toStdString() << "\t";
+#include <iostream>
+
+QString ClipboardContent::toJSONString() {
+
+	const QMimeData * mimeData = app->clipboard()->mimeData();
+	QJsonObject clipboardJSON;
+
+	for(QString t : *supportedTypes) {
+	    if(mimeData->hasFormat(t)) {
+		QByteArray data = mimeData->data(t);
+		clipboardJSON.insert(t,QString(data));
+	    }
 	}
 
+	QJsonDocument doc (clipboardJSON);
+	QByteArray clipboardJSONdata = doc.toJson();
+	QString clipboardJSONString {clipboardJSONdata};
 
-	if(c.hasTextBool && c.text.length()) {
-		QString t = c.text;
-		t.replace(QString("\n"),QString(""));
-		t.truncate(100);
-		out << "text: " << t.toStdString() << std::endl;
-	}
-
-	if(c.hasHtmlBool && c.html.length()) {
-		QString h = c.html;
-		h.replace(QString("\n"),QString(""));
-		h.truncate(100);
-		out << "html: " << h.toStdString() << std::endl;
-	}
-
-	return out;
+	return clipboardJSONString;
 }
 
-bool ClipboardContent::operator ==(const ClipboardContent& rhs) {
-	if(rhs.hasTextBool != this->hasTextBool) { return false; }
-	if(rhs.hasHtmlBool != this->hasHtmlBool) { return false; }
-	if(rhs.text != this->text) { return false; }
-	if(rhs.html != this->html) { return false; }
+/*
+if(mimeData->hasImage()) {
+	QVariant v = mimeData->imageData();
 
-	return true;
+	QImage image = v.value<QImage>();
+
+	QByteArray ba;
+	QBuffer buffer(&ba);
+	buffer.open(QIODevice::WriteOnly);
+	image.save(&buffer,"JPEG", -1);
+
+	QString data {ba};
+	clipboardJSON.insert("image/jpeg",data);
+
+	std::cout << "image size: " << data.length() << std::endl;
 }
-bool ClipboardContent::operator !=(const ClipboardContent& rhs) {
-	return !(*this == rhs);
-}
+*/

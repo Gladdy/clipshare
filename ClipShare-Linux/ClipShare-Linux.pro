@@ -4,7 +4,7 @@
 #
 #-------------------------------------------------
 
-CONFIG	 += c++11
+CONFIG	 += c++11 Wall
 QT       += widgets network
 
 TARGET	 = ClipShare-Linux

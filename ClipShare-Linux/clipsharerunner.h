@@ -1,39 +1,36 @@
 #ifndef CLIPSHARERUNNER_H
 #define CLIPSHARERUNNER_H
 
-#include "clipboardchecker.h"
 #include "tcpclient.h"
 
 #include <QObject>
 #include <QApplication>
 #include <QClipboard>
 
-#include <thread>
-
-class ClipboardContent;
-
 class ClipShareRunner : public QObject
 {
-	Q_OBJECT
+    Q_OBJECT
 public:
-	ClipShareRunner(QClipboard * app, QObject *parent = 0);
-	~ClipShareRunner();
+    ClipShareRunner(QApplication* a, QObject* parent = 0);
+    ~ClipShareRunner() {}
+    void initialize();
 
 signals:
-	void writeToSocket(const QString&);
+    void writeToSocket(QString);
 
 public slots:
-	void processClipboardChange();
-	void readFromSocket(const QString&);
+    void processClipboardChange();
+    void readFromSocket(QString);
 
 private:
-	TcpClient * tcpclient;
-	QClipboard * clipboard;
+    QApplication * app;
+    TcpClient * tcpclient;
+    QMimeData * mimeData;
 
-	void processClipboardContent(const ClipboardContent&);
+    void processConfigFile();
 
-	const QString configFilename = "config.cfg";
-	void processConfigFile();
+    QStringList supportedTypes {"text/plain","text/html"};
+    const QString configFilename = "config.cfg";
 };
 
 #endif // CLIPSHARERUNNER_H
