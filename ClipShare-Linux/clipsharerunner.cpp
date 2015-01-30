@@ -7,10 +7,8 @@
 #include <QJsonValue>
 #include <QJsonDocument>
 #include <QFile>
-#include <QStringList>
 
 #include <iostream>
-
 
 ClipShareRunner::ClipShareRunner(QApplication *a, QObject * p) :
 	QObject(p),
@@ -31,10 +29,16 @@ void ClipShareRunner::initialize() {
 
 void ClipShareRunner::processClipboardChange()
 {
-	ClipboardContent cc (QClipboard::Clipboard,app, &supportedTypes);
-	QString clipboardJSON = cc.toJSONString();
+	if(!updatingClipboard)
+	{
+        clipboardMutex.lock();
+		ClipboardContent cc (QClipboard::Clipboard, app, &supportedTypes);
+        QString clipboardJSON = cc.toJSONString();
+        qDebug() << "processing clipboard change";
+        clipboardMutex.unlock();
 
-	emit writeToSocket(clipboardJSON);
+		emit writeToSocket(clipboardJSON);
+	}
 }
 
 void ClipShareRunner::processConfigFile()
@@ -76,28 +80,40 @@ void ClipShareRunner::processConfigFile()
 	}
 }
 
+/**
+ * @brief ClipShareRunner::readFromSocket performs a clipboard operation thus must be locked
+ * @param str
+ */
 void ClipShareRunner::readFromSocket(QString str)
 {
-	qDebug() << "reading";
-	mimeData->clear();
+    updatingClipboard = true;
+    clipboardMutex.lock();
 
-	qDebug() << "cleared mimedata";
+    mimeData->clear();
 
 	QByteArray strData = str.toLatin1();
 	QJsonDocument strJsonDoc = QJsonDocument::fromJson(strData);
 
+	if(strJsonDoc.isNull()) {
+		std::cerr << "received invalid json object" << std::endl;
+		exit(1);
+	}
+
 	QJsonObject strJsonObject = strJsonDoc.object();
 
-	for(QString type : supportedTypes) {
-		if(strJsonObject.contains(type)) {
+	for(QString type : supportedTypes)
+	{
+		if(strJsonObject.contains(type))
+		{
 			QByteArray data = strJsonObject[type].toString().toLatin1();
 			mimeData->setData(type, data);
 		}
 	}
 
-	qDebug() << "parsed json and added to mimedata";
-
+    qDebug() << "before setting mime data";
 	app->clipboard()->setMimeData(mimeData);
+    qDebug() << "after setting mime data";
 
-	qDebug() << "updated the apps clipboard";
+    clipboardMutex.unlock();
+    updatingClipboard = false;
 }

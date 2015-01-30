@@ -5,7 +5,10 @@
 
 #include <QObject>
 #include <QApplication>
-#include <QClipboard>
+#include <QMimeData>
+#include <QStringList>
+#include <QString>
+#include <QMutex>
 
 class ClipShareRunner : public QObject
 {
@@ -25,12 +28,16 @@ public slots:
 private:
     QApplication * app;
     TcpClient * tcpclient;
-    QMimeData * mimeData;
+	QMimeData * mimeData;
+
+    QMutex clipboardMutex;
 
     void processConfigFile();
 
     QStringList supportedTypes {"text/plain","text/html"};
     const QString configFilename = "config.cfg";
+
+	bool updatingClipboard = false;
 };
 
 #endif // CLIPSHARERUNNER_H

@@ -2,11 +2,7 @@
 
 #include <QJsonObject>
 #include <QJsonDocument>
-#include <QVariant>
 #include <QImage>
-#include <QBuffer>
-
-#include <iostream>
 
 QString ClipboardContent::toJSONString() {
 
@@ -14,10 +10,10 @@ QString ClipboardContent::toJSONString() {
 	QJsonObject clipboardJSON;
 
 	for(QString t : *supportedTypes) {
-	    if(mimeData->hasFormat(t)) {
-		QByteArray data = mimeData->data(t);
-		clipboardJSON.insert(t,QString(data));
-	    }
+		if(mimeData->hasFormat(t)) {
+			QByteArray data = mimeData->data(t);
+			clipboardJSON.insert(t,QString(data));
+		}
 	}
 
 	QJsonDocument doc (clipboardJSON);
