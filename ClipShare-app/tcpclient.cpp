@@ -17,20 +17,18 @@ TcpClient::TcpClient(QObject * parent) :
 	connect(socket,SIGNAL(readyRead()), this, SLOT(readyRead()));
 	connect(socket,SIGNAL(bytesWritten(qint64)),this,SLOT(bytesWritten(qint64)));
 }
-void TcpClient::updateConnectInfo(QString username, QString password, QString h, int p)
+void TcpClient::updateConnectInfo(QString email, QString password, QString h, int p)
 {
-	this->hostname = h;
-	this->port = p;
+    hostname = h;
+    port = p;
 
 	QJsonObject json;
 
-	json.insert("username", username);
+    json.insert("email", email);
 	json.insert("password", password);
 
-	QJsonDocument doc {json};
-	QByteArray jsonData = doc.toJson();
-
-	connectString = QString(jsonData);
+    QJsonDocument doc {json};
+    connectString = QString(doc.toJson());
 }
 
 void TcpClient::initConnection()
@@ -57,11 +55,10 @@ void TcpClient::initConnection()
 void TcpClient::writeToSocket(QString str)
 {
 	if(!connectedFlag) {
-		initConnection();
-		QThread::sleep(1);
+        return;
 	}
 
-	socket->write(str.toLatin1());
+    socket->write(str.toUtf8());
 
 	if(!socket->waitForBytesWritten(networkTimeout))
 	{
@@ -71,8 +68,10 @@ void TcpClient::writeToSocket(QString str)
 }
 TcpClient::~TcpClient()
 {
-	socket->close();
-	delete socket;
+    closing = true;
+    disconnect();
+    socket->close();
+    delete socket;
 }
 void TcpClient::connected()
 {
@@ -83,7 +82,9 @@ void TcpClient::disconnected()
 {
 	qDebug() << "Disconnected!";
 	connectedFlag = false;
-	initConnection();
+    if(!closing) {
+        initConnection();
+    }
 }
 void TcpClient::bytesWritten (qint64 bytes)
 {

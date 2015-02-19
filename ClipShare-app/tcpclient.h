@@ -3,7 +3,6 @@
 
 #include <QObject>
 #include <QTcpSocket>
-#include <QMutex>
 
 class TcpClient : public QObject
 {
@@ -37,6 +36,8 @@ private:
 
     QByteArray readBuffer;
     bool isValidJSON(QByteArray);
+
+    bool closing = false;
 };
 
 #endif // TCPCLIENT_H

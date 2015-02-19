@@ -5,18 +5,21 @@
 #-------------------------------------------------
 
 CONFIG	 += c++11 Wall
-QT       += widgets network
+QT       += widgets network gui
 
-TARGET	 = ClipShare-Linux
-TEMPLATE = app
+RESOURCES     = clipshare.qrc
 
-SOURCES  += main.cpp clipboardcontent.cpp clipsharerunner.cpp tcpclient.cpp
-HEADERS  += clipboardcontent.h clipsharerunner.h tcpclient.h
+TARGET	 = ClipShare
+
+SOURCES  += main.cpp clipsharerunner.cpp tcpclient.cpp statuswindow.cpp
+HEADERS  += clipsharerunner.h tcpclient.h statuswindow.h
 
 DISTFILES += ../config.cfg
-
 
 for(FILE, $$DISTFILES) {
     QMAKE_POST_LINK += $(COPY_DIR) $$PWD/FILE $$OUT_PWD
 }
+
+FORMS += statuswindow.ui
+
 
