@@ -13,6 +13,7 @@ ClipShareRunner::ClipShareRunner(QObject * p) :
 {
     tcpclient = new TcpClient(this);
     mimeData = new QMimeData();
+    settings = new ApplicationSettings();
 
     //Clipboard change
     connect(QApplication::clipboard(),SIGNAL(dataChanged()),this,SLOT(processClipboardChange()));
@@ -24,19 +25,15 @@ ClipShareRunner::ClipShareRunner(QObject * p) :
     //Errors
     connect(this,SIGNAL(error(int,QString)),this,SLOT(displayError(int,QString)));
 
-    supportedTypes.append("text/plain");
-    supportedTypes.append("text/html");
+
 
     lastUpdated = QTime::currentTime();
 }
-void ClipShareRunner::initialize() {
-    readConfigFile();
-    applyConnectionConfig();
-    applyTransmissionConfig();
+void ClipShareRunner::initialize()
+{
+    settings->initialize();
 }
-void ClipShareRunner::displayError(int severity, QString msg) {
-    qDebug() << severity << " : " << msg;
-}
+
 
 /**
  * @brief ClipShareRunner::processClipboardChange
@@ -74,8 +71,8 @@ void ClipShareRunner::processClipboardChange()
 }
 
 /**
- * @brief ClipShareRunner::readFromSocket performs a clipboard operation thus must be locked
- * @param str
+ * @brief
+ * @param
  */
 void ClipShareRunner::readFromSocket(QString str)
 {
@@ -98,57 +95,3 @@ void ClipShareRunner::readFromSocket(QString str)
     emit writingToClipboard();
 }
 
-void ClipShareRunner::readConfigFile()
-{
-    QFile configFile (configFilename);
-
-    if(!configFile.open(QIODevice::ReadOnly)) {
-        emit error(1,"Could not open config file: " + configFilename);
-        return;
-    }
-    else
-    {
-        QByteArray configFileContent = configFile.readAll();
-        configFile.close();
-
-        config = QJsonDocument::fromJson(configFileContent);
-
-        if(config.isNull()) {
-            emit error(1, "invalid config file");
-        }
-    }
-}
-
-void ClipShareRunner::applyConnectionConfig()
-{
-    QJsonObject configJSON = config.object();
-
-    if(configJSON.contains("email") && configJSON.contains("password") && configJSON.contains("hostname") && configJSON.contains("port"))
-    {
-        QString email = configJSON["email"].toString();
-        QString password = configJSON["password"].toString();
-        QString hostname = configJSON["hostname"].toString();
-        int port = configJSON["port"].toInt();
-
-        tcpclient->disconnect();
-        tcpclient->updateConnectInfo(email,password,hostname,port);
-        tcpclient->initConnection();
-    }
-    else
-    {
-        emit error(1, "invalid connection info in config data");
-    }
-}
-void ClipShareRunner::applyTransmissionConfig()
-{
-    QJsonObject configJSON = config.object();
-
-    if(configJSON.contains("maxclipsize"))
-    {
-        maxTransmitSize = configJSON["maxclipsize"].toInt();
-    }
-    else
-    {
-        emit error(2, "no max clipsize in the config file");
-    }
-}

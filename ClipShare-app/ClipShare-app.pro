@@ -11,8 +11,12 @@ RESOURCES     = clipshare.qrc
 
 TARGET	 = ClipShare
 
-SOURCES  += main.cpp clipsharerunner.cpp tcpclient.cpp statuswindow.cpp
-HEADERS  += clipsharerunner.h tcpclient.h statuswindow.h
+SOURCES  += main.cpp clipsharerunner.cpp tcpclient.cpp statuswindow.cpp \
+    applicationsettings.cpp \
+    clipboardjsonformatter.cpp
+HEADERS  += clipsharerunner.h tcpclient.h statuswindow.h \
+    applicationsettings.h \
+    clipboardjsonformatter.h
 
 DISTFILES += ../config.cfg
 

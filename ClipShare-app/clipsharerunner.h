@@ -2,10 +2,11 @@
 #define CLIPSHARERUNNER_H
 
 #include "tcpclient.h"
+#include "applicationsettings.h"
+#include "clipboardjsonformatter.h"
 
 #include <QObject>
 #include <QMimeData>
-#include <QStringList>
 #include <QString>
 #include <QTime>
 #include <QJsonDocument>
@@ -17,35 +18,28 @@ public:
     ClipShareRunner(QObject* parent = 0);
     ~ClipShareRunner() {
         delete tcpclient;
+        delete settings;
     }
     void initialize();
 
 signals:
     void writeToSocket(QString);
     void error(int, QString);
-    void writingToClipboard();
     void readingClipboardUpdate();
 
 public slots:
     void processClipboardChange();
     void readFromSocket(QString);
 
-    void displayError(int, QString);
+    void displayError(int severity, QString msg) { qDebug() << severity << " : " << msg; }
 
 private:
     TcpClient * tcpclient;
-    QMimeData * mimeData; //the current pointer to the mimedata, but others will delete it
+    QMimeData * mimeData;
+    ApplicationSettings * settings;
+    ClipboardJSONFormatter * formatter;
 
     QTime lastUpdated;
-    QStringList supportedTypes;
-
-    void readConfigFile();
-    void applyConnectionConfig();
-    void applyTransmissionConfig();
-
-    QJsonDocument config;
-    const QString configFilename = "config.txt";
-    int maxTransmitSize = INT_MAX;
 };
 
 #endif // CLIPSHARERUNNER_H
