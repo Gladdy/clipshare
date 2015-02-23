@@ -9,18 +9,16 @@ int main(int argc, char** argv)
     Q_INIT_RESOURCE(clipshare);
 
     QApplication app(argc, argv);
+    //app.setQuitOnLastWindowClosed(false);
 
-    if (!QSystemTrayIcon::isSystemTrayAvailable()) {
-        QMessageBox::critical(0, QObject::tr("Systray"), QObject::tr("No systray detected"));
-        return 1;
-    }
-    QApplication::setQuitOnLastWindowClosed(false);
+    StatusWindow * window = new StatusWindow();
+    ClipShareRunner * runner = new ClipShareRunner();
 
-    StatusWindow window;
-    window.hide();
+    QObject::connect(window,SIGNAL(emitCommand(QString, QString)),runner,SLOT(processCommand(QString,QString)));
+    QObject::connect(runner,SIGNAL(emitNotification(QString, QString)),window,SLOT(processNotification(QString,QString)));
 
-    ClipShareRunner csr;
-    csr.initialize();
+    runner->initialize();
+    window->show();
 
     return app.exec();
 }

@@ -1,26 +1,21 @@
 #include "applicationsettings.h"
+
 #include <QFile>
+#include <QJsonObject>
+#include <QJsonDocument>
+#include <QDebug>
 
-ApplicationSettings::ApplicationSettings()
+void ApplicationSettings::initialize()
 {
-    supportedTypes.append("text/plain");
-    supportedTypes.append("text/html");
-}
-
-ApplicationSettings::~ApplicationSettings()
-{
-
-}
-
-void ApplicationSettings::initialize() {
-
     QFile configFile (configFilename);
+    QJsonDocument configFileContents;
 
     /*
      *  PARSE CONFIG FILE AS JSON
      */
-    if(!configFile.open(QIODevice::ReadOnly)) {
-        emit error(1,"Could not open config file: " + configFilename);
+    if(!configFile.open(QIODevice::ReadOnly))
+    {
+        emitSettingsError(1,"Could not open config file: " + configFilename);
         return;
     }
     else
@@ -28,56 +23,97 @@ void ApplicationSettings::initialize() {
         QByteArray configFileContent = configFile.readAll();
         configFile.close();
 
-        config = QJsonDocument::fromJson(configFileContent);
+        configFileContents = QJsonDocument::fromJson(configFileContent);
 
-        if(config.isNull()) {
-            emit error(1, "invalid config file");
+        if(configFileContents.isNull()) {
+            emitSettingsError(1, "invalid config file");
             return;
         }
     }
 
-    QJsonObject configJSON = config.object();
+    QJsonObject configFileObject = configFileContents.object();
 
-    /*
-     *  EXTRACT AUTHORISATION DATA: EMAIL AND PASSWORD
-     */
-    if(configJSON.contains("email") && configJSON.contains("password"))
+    configLock.lock();
+
+    QJsonObject configObject = config.object();
+
+    //  EXTRACT AUTHORISATION DATA: EMAIL AND PASSWORD
+    if(configFileObject.contains("email") && configFileObject.contains("password"))
     {
-        email = configJSON["email"].toString();
-        password = configJSON["password"].toString();
+        configObject["email"] = configFileObject["email"].toString();
+        configObject["password"] = configFileObject["password"].toString();
     }
     else
     {
-        emit error(1, "no authorisation details provided!");
+        emitSettingsError(1, "no authorisation details provided!");
     }
 
-    /*
-     *  EXTRACT CONNECTION DATA: HOST AND PORT
-     */
-    if(configJSON.contains("hostname") && configJSON.contains("port"))
+
+    //  EXTRACT CONNECTION DATA: HOST AND PORT
+    if(configFileObject.contains("hostname") && configFileObject.contains("port"))
     {
-        hostname = configJSON["hostname"].toString();
-        port = configJSON["port"].toInt();
+        configObject["hostname"] = configFileObject["hostname"].toString();
+        configObject["port"] = configFileObject["port"].toInt();
     }
     else
     {
-        emit error(2, "no custom server provided");
+        emitSettingsError(2, "no custom server provided");
     }
 
-    /*
-     *  EXTRACT MAX TRANSMISSION SIZE
-     */
-    if(configJSON.contains("maxclipsize"))
-    {
-        maxTransmitSize = configJSON["maxclipsize"].toInt();
-    }
-    else
-    {
-        emit error(2, "no max clipsize in the config file");
-    }
+    config = QJsonDocument(configObject);
 
+    configLock.unlock();
+
+    saveConfigToDisk();
 }
 
-ConnectInfo ApplicationSettings::getConnectInfo() {
-    return ConnectInfo {email, password, hostname, port};
+void ApplicationSettings::loadDefaults()
+{
+    configLock.lock();
+
+    QJsonObject configObject = config.object();
+    configObject["hostname"] =  "84.85.97.221";
+    configObject["port"] = 31443;
+    configObject["uploadSizeLimit"] = 2000000;
+    configObject["copyTimePeriod"] = 1000;
+    config = QJsonDocument(configObject);
+
+    configLock.unlock();
+}
+
+void ApplicationSettings::saveConfigToDisk()
+{
+    configLock.lock();
+
+    qDebug() << config;
+
+    configLock.unlock();
+}
+
+QJsonValue ApplicationSettings::getSetting(QString key)
+{
+    configLock.lock();
+
+    QJsonObject configObject = config.object();
+    QJsonValue settingFromConfig {};
+
+    if(configObject.contains(key))
+    {
+        settingFromConfig = configObject.take(key);
+    }
+
+    configLock.unlock();
+
+    return settingFromConfig;
+}
+
+void ApplicationSettings::setSetting(QString key, QJsonValue val)
+{
+    configLock.lock();
+
+    QJsonObject configObject = config.object();
+    configObject.insert(key,val);
+    config = QJsonDocument(configObject);
+
+    configLock.unlock();
 }

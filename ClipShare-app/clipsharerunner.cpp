@@ -1,33 +1,29 @@
 #include "clipsharerunner.h"
-#include "tcpclient.h"
+
+#include "applicationsettings.h"
+#include "clipboardjsonformatter.h"
+#include "networkmanager.h"
 
 #include <QApplication>
 #include <QClipboard>
-#include <QFile>
-
-#include <QJsonObject>
 #include <QJsonValue>
+#include <QDebug>
 
-ClipShareRunner::ClipShareRunner(QObject * p) :
-    QObject(p)
+ClipShareRunner::ClipShareRunner(QObject * parent) : QObject(parent)
 {
-    tcpclient = new TcpClient(this);
-    mimeData = new QMimeData();
-    settings = new ApplicationSettings();
+    settings = new ApplicationSettings(this);
+    formatter = new ClipboardJSONFormatter(settings, this);
+    manager = new NetworkManager(settings, this);
 
     //Clipboard change
     connect(QApplication::clipboard(),SIGNAL(dataChanged()),this,SLOT(processClipboardChange()));
 
     //Netwerk connections
-    connect(this,SIGNAL(writeToSocket(QString)),tcpclient,SLOT(writeToSocket(QString)));
-    connect(tcpclient,SIGNAL(readFromSocket(QString)),this,SLOT(readFromSocket(QString)));
+    connect(this,SIGNAL(emitNetworkRequest(QJsonDocument)),manager,SLOT(processNetworkRequest(QJsonDocument)));
+    connect(manager,SIGNAL(emitNetworkResponse(QJsonDocument)),this,SLOT(processNetworkResponse(QJsonDocument)));
 
     //Errors
-    connect(this,SIGNAL(error(int,QString)),this,SLOT(displayError(int,QString)));
-
-
-
-    lastUpdated = QTime::currentTime();
+    connect(settings,SIGNAL(emitSettingsError(int,QString)),this,SLOT(processError(int,QString)));
 }
 void ClipShareRunner::initialize()
 {
@@ -35,17 +31,20 @@ void ClipShareRunner::initialize()
 }
 
 
-/**
- * @brief ClipShareRunner::processClipboardChange
- * emit only whenever the last clipboard change was more than 100 msec ago
- * solution to both overflowing the server and the crossplatform troubles
- */
 void ClipShareRunner::processClipboardChange()
 {
+    clipboardTriggerList.push_back(QTime::currentTime());
+    int period = settings->getSetting("copyTimePeriod").toInt();
+
+    while(clipboardTriggerList.front().elapsed() > period) {
+        clipboardTriggerList.removeFirst();
+    }
+
+    emitNotification("amount of clips: ", QString::number(clipboardTriggerList.length()));
+
+    /*
     if(lastUpdated.elapsed() > 100)
     {
-        emit readingClipboardUpdate();
-
         const QMimeData * changedMimeData = QApplication::clipboard()->mimeData();
         QJsonObject clipboardJSON;
 
@@ -68,14 +67,14 @@ void ClipShareRunner::processClipboardChange()
             emit writeToSocket(clipboardJSONString);
         }
     }
+    */
 }
 
-/**
- * @brief
- * @param
- */
-void ClipShareRunner::readFromSocket(QString str)
+void ClipShareRunner::processNetworkResponse(QJsonDocument doc)
 {
+    qDebug() << doc;
+
+    /*
     mimeData = new QMimeData();
 
     QJsonDocument strJsonDoc = QJsonDocument::fromJson(str.toLatin1());
@@ -93,5 +92,16 @@ void ClipShareRunner::readFromSocket(QString str)
     lastUpdated = QTime::currentTime();
     QApplication::clipboard()->setMimeData(mimeData);
     emit writingToClipboard();
+    */
+}
+
+void ClipShareRunner::processError(int severity, QString message)
+{
+    emitNotification(QString::number(severity),message);
+}
+
+void ClipShareRunner::processCommand(QString str, QString msg)
+{
+    qDebug() << "processing command in clipsharerunner: " << str << "\t" << msg;
 }
 

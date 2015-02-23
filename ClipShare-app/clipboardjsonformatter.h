@@ -1,12 +1,24 @@
 #ifndef CLIPBOARDJSONFORMATTER_H
 #define CLIPBOARDJSONFORMATTER_H
 
+#include <QObject>
 
-class ClipboardJSONFormatter
+class ApplicationSettings;
+
+class ClipboardJSONFormatter : public QObject
 {
+    Q_OBJECT
 public:
-    ClipboardJSONFormatter();
-    ~ClipboardJSONFormatter();
+    ClipboardJSONFormatter(ApplicationSettings * s, QObject* parent = 0) : QObject(parent)
+    {
+        settings = s;
+    }
+    ~ClipboardJSONFormatter() {
+
+    }
+
+private:
+    ApplicationSettings * settings;
 };
 
 #endif // CLIPBOARDJSONFORMATTER_H

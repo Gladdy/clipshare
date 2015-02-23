@@ -1,36 +1,35 @@
 #ifndef APPLICATIONSETTINGS_H
 #define APPLICATIONSETTINGS_H
 
+#include <QObject>
 #include <QString>
+#include <QJsonValue>
 #include <QJsonDocument>
+#include <QMutex>
 
-struct ConnectInfo {
-    QString email;
-    QString password;
-    QString hostname;
-    int port;
-};
-
-class ApplicationSettings
+class ApplicationSettings : public QObject
 {
+    Q_OBJECT
 public:
-    ApplicationSettings();
-    ~ApplicationSettings();
-
+    ApplicationSettings(QObject* parent = 0) : QObject(parent)
+    {
+        loadDefaults();
+    }
     void initialize();
-    ConnectInfo getConnectInfo();
+
+    void setSetting(QString, QJsonValue);
+    QJsonValue getSetting(QString);
+
+signals:
+    void emitSettingsError(int, QString);
 
 private:
-    QString email;
-    QString password;
+    void loadDefaults();
+    void saveConfigToDisk();
 
-    QString hostname = "84.85.97.221";
-    int port = 31415;
-
-    int maxTransmitSize;
-
-    const QString configFilename = "config.txt";
+    const QString configFilename = "config.cfg";
     QJsonDocument config;
+    QMutex configLock;
 };
 
 #endif // APPLICATIONSETTINGS_H

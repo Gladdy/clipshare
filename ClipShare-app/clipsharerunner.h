@@ -1,45 +1,43 @@
 #ifndef CLIPSHARERUNNER_H
 #define CLIPSHARERUNNER_H
 
-#include "tcpclient.h"
-#include "applicationsettings.h"
-#include "clipboardjsonformatter.h"
-
 #include <QObject>
 #include <QMimeData>
 #include <QString>
-#include <QTime>
 #include <QJsonDocument>
+#include <QList>
+#include <QTime>
+
+class NetworkManager;
+class ApplicationSettings;
+class ClipboardJSONFormatter;
 
 class ClipShareRunner : public QObject
 {
     Q_OBJECT
 public:
     ClipShareRunner(QObject* parent = 0);
-    ~ClipShareRunner() {
-        delete tcpclient;
-        delete settings;
-    }
     void initialize();
 
 signals:
-    void writeToSocket(QString);
-    void error(int, QString);
-    void readingClipboardUpdate();
+    void emitNetworkRequest(QJsonDocument);
+    void emitNotification(QString, QString);
 
 public slots:
     void processClipboardChange();
-    void readFromSocket(QString);
 
-    void displayError(int severity, QString msg) { qDebug() << severity << " : " << msg; }
+    void processNetworkResponse(QJsonDocument);
+    void processCommand(QString, QString);
+    void processError(int, QString);
 
 private:
-    TcpClient * tcpclient;
-    QMimeData * mimeData;
     ApplicationSettings * settings;
     ClipboardJSONFormatter * formatter;
+    NetworkManager * manager;
 
-    QTime lastUpdated;
+    QMimeData * mimeData;
+
+    QList<QTime> clipboardTriggerList;
 };
 
 #endif // CLIPSHARERUNNER_H

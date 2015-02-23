@@ -1,6 +1,8 @@
 #include "statuswindow.h"
 #include "ui_statuswindow.h"
 
+#include <QDebug>
+
 StatusWindow::StatusWindow(QWidget *parent) :
     QMainWindow(parent),
     ui(new Ui::StatusWindow)
@@ -44,4 +46,15 @@ void StatusWindow::createTrayIcon()
 
     trayIcon = new QSystemTrayIcon(this);
     trayIcon->setContextMenu(trayIconMenu);
+}
+void StatusWindow::processNotification(QString str, QString msg) {
+    //qDebug() << "got a notification: " << str << "\t" << msg;
+    showMessage(str,msg);
+}
+
+void StatusWindow::showMessage(QString str, QString msg)
+{
+    QSystemTrayIcon::MessageIcon icon = QSystemTrayIcon::MessageIcon();
+    //QSystemTrayIcon::MessageIcon icon = QSystemTrayIcon::MessageIcon(typeComboBox->itemData(typeComboBox->currentIndex()).toInt());
+    trayIcon->showMessage(str, msg, icon, 2000);
 }
