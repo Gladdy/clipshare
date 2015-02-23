@@ -18,6 +18,7 @@ class ClipShareRunner : public QObject
 public:
     ClipShareRunner(QObject* parent = 0);
     void initialize();
+    ApplicationSettings * settings;
 
 signals:
     void emitNetworkRequest(QJsonDocument);
@@ -31,7 +32,6 @@ public slots:
     void processError(int, QString);
 
 private:
-    ApplicationSettings * settings;
     ClipboardJSONFormatter * formatter;
     NetworkManager * manager;
 

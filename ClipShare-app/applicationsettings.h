@@ -19,13 +19,15 @@ public:
 
     void setSetting(QString, QJsonValue);
     QJsonValue getSetting(QString);
+    bool validateEmail(QString);
+    bool validateNumber(QString, int, int);
+    void saveConfigToDisk();
 
 signals:
     void emitSettingsError(int, QString);
 
 private:
     void loadDefaults();
-    void saveConfigToDisk();
 
     const QString configFilename = "config.cfg";
     QJsonDocument config;

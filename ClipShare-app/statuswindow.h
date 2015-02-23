@@ -3,21 +3,34 @@
 
 #include <QMainWindow>
 #include <QSystemTrayIcon>
+#include <QIcon>
+#include <QLineEdit>
+#include <QObject>
 
 namespace Ui {
 class StatusWindow;
 }
+
+class ApplicationSettings;
 
 class StatusWindow : public QMainWindow
 {
     Q_OBJECT
 
 public:
-    explicit StatusWindow(QWidget *parent = 0);
+    explicit StatusWindow(ApplicationSettings * s, QWidget *parent = 0);
     ~StatusWindow();
 
 public slots:
     void processNotification(QString, QString);
+
+private slots:
+    void iconActivated(QSystemTrayIcon::ActivationReason);
+    void processRegister();
+    void processOK();
+    void processCancel();
+    bool processApply();
+    void showTrayMessage(QString msg, QSystemTrayIcon::MessageIcon messageIcon = QSystemTrayIcon::Warning);
 
 signals:
     void emitCommand(QString, QString);
@@ -25,17 +38,22 @@ signals:
 private:
     Ui::StatusWindow *ui;
 
-    void createActions();
-    void createTrayIcon();
-    void showMessage(QString, QString);
+    void setupTrayMenu();
+    void fillFields();
+
+    void setError(QLineEdit*);
+    void setCorrect(QLineEdit*);
 
     QAction *minimizeAction;
-    QAction *maximizeAction;
     QAction *restoreAction;
     QAction *quitAction;
 
     QSystemTrayIcon *trayIcon;
     QMenu *trayIconMenu;
+
+    QString titleString;
+    const QIcon icon;
+    ApplicationSettings * settings;
 };
 
 #endif // STATUSWINDOW_H
