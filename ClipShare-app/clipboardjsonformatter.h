@@ -17,6 +17,9 @@ public:
 
     }
 
+signals:
+    void emitNotification(QString, QString);
+
 private:
     ApplicationSettings * settings;
 };

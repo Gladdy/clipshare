@@ -19,12 +19,13 @@ public:
 
     void setSetting(QString, QJsonValue);
     QJsonValue getSetting(QString);
-    bool validateEmail(QString);
-    bool validateNumber(QString, int, int);
     void saveConfigToDisk();
 
+    bool validateEmail(QString);
+    bool validateNumber(QString, int, int);
+
 signals:
-    void emitSettingsError(int, QString);
+    void emitNotification(QString, QString);
 
 private:
     void loadDefaults();

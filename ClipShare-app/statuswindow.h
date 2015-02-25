@@ -26,10 +26,14 @@ public slots:
 
 private slots:
     void iconActivated(QSystemTrayIcon::ActivationReason);
+
     void processRegister();
+    void processCheck();
+
     void processOK();
     void processCancel();
     bool processApply();
+
     void showTrayMessage(QString msg, QSystemTrayIcon::MessageIcon messageIcon = QSystemTrayIcon::Warning);
 
 signals:
@@ -44,6 +48,9 @@ private:
     void setError(QLineEdit*);
     void setCorrect(QLineEdit*);
 
+    bool applyAccount();
+    bool applyGeneral();
+
     QAction *minimizeAction;
     QAction *restoreAction;
     QAction *quitAction;
@@ -54,6 +61,8 @@ private:
     QString titleString;
     const QIcon icon;
     ApplicationSettings * settings;
+
+    const int progressResolution = 1024;
 };
 
 #endif // STATUSWINDOW_H

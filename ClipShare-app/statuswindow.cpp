@@ -9,6 +9,8 @@
 #include <QUrl>
 #include <QDebug>
 #include <QLineEdit>
+#include <QSizePolicy>
+#include <QStringList>
 
 StatusWindow::StatusWindow(ApplicationSettings * s, QWidget *parent) :
     QMainWindow(parent),
@@ -18,6 +20,7 @@ StatusWindow::StatusWindow(ApplicationSettings * s, QWidget *parent) :
     settings(s)
 {
     ui->setupUi(this);
+
     setupTrayMenu();
     fillFields();
 
@@ -34,9 +37,13 @@ StatusWindow::StatusWindow(ApplicationSettings * s, QWidget *parent) :
             this,SLOT(iconActivated(QSystemTrayIcon::ActivationReason)));
 
     connect(ui->pushButton_register,SIGNAL(pressed()),this,SLOT(processRegister()));
+    connect(ui->pushButton_check, SIGNAL(pressed()), this, SLOT(processCheck()));
+
     connect(ui->pushButton_ok,SIGNAL(pressed()),this,SLOT(processOK()));
     connect(ui->pushButton_cancel,SIGNAL(pressed()),this,SLOT(processCancel()));
     connect(ui->pushButton_apply,SIGNAL(pressed()),this,SLOT(processApply()));
+
+    connect(ui->pushButton_shutdown, SIGNAL(pressed()), qApp, SLOT(quit()));
 }
 
 StatusWindow::~StatusWindow() { delete ui; }
@@ -87,11 +94,35 @@ void StatusWindow::fillFields()
 
     int timeperiod = settings->getSetting("copyTimePeriod").toInt();
     ui->lineEdit_interval->setText(QString::number(timeperiod));
-}
 
+    ui->progressBar_upload->setRange(0,progressResolution);
+    ui->progressBar_upload->setValue(0);
+    ui->progressBar_upload->hide();
+}
 void StatusWindow::processNotification(QString str, QString msg)
 {
-    showTrayMessage(str + "\t" + msg,QSystemTrayIcon::Information);
+    if(str == "Error")
+    {
+        showTrayMessage(str + "\t" + msg);
+    }
+    else if (str == "Progress")
+    {
+        ui->progressBar_upload->show();
+
+        QStringList values = msg.split("\t", QString::SkipEmptyParts);
+        long current = values.at(0).toLong();
+        long total = values.at(1).toLong();
+        int value = ((float)current/(float)total) * progressResolution;
+
+        ui->progressBar_upload->setValue(value);
+
+        if(current == 0 && total == 0)
+        {
+            showTrayMessage("Upload complete", QSystemTrayIcon::Information);
+            ui->progressBar_upload->hide();
+            ui->progressBar_upload->setValue(0);
+        }
+    }
 }
 void StatusWindow::iconActivated(QSystemTrayIcon::ActivationReason reason)
 {
@@ -110,6 +141,18 @@ void StatusWindow::processRegister()
 {
     QDesktopServices::openUrl(QUrl("http://developer.qt.nokia.com"));
 }
+void StatusWindow::processCheck()
+{
+    if(applyAccount() == false)
+    {
+        showTrayMessage("Invalid credentials");
+    }
+    else
+    {
+        emitCommand("connect","checkcredentials");
+    }
+}
+
 void StatusWindow::processOK()
 {
     if(processApply()) {
@@ -121,7 +164,7 @@ void StatusWindow::processCancel()
     this->hide();
     fillFields();
 }
-bool StatusWindow::processApply()
+bool StatusWindow::applyAccount()
 {
     bool correct = true;
 
@@ -160,6 +203,13 @@ bool StatusWindow::processApply()
         settings->setSetting("password",password);
         setCorrect(ui->lineEdit_password);
     }
+
+    return correct;
+}
+bool StatusWindow::applyGeneral()
+{
+    bool correct = true;
+
     /*
      *  uploadSizeLimit
      */
@@ -194,14 +244,16 @@ bool StatusWindow::processApply()
         setCorrect(ui->lineEdit_interval);
     }
 
-    if(correct)
-    {
-        settings->saveConfigToDisk();
-    }
-    else
-    {
-        qDebug() << "something was wrong";
-    }
+    return correct;
+}
+
+bool StatusWindow::processApply()
+{
+    bool correct = true;
+
+    if(applyAccount() == false) { correct = false; }
+    if(applyGeneral() == false) { correct = false; }
+    if(correct) { settings->saveConfigToDisk(); }
 
     return correct;
 }

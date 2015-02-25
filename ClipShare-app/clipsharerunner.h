@@ -29,7 +29,7 @@ public slots:
 
     void processNetworkResponse(QJsonDocument);
     void processCommand(QString, QString);
-    void processError(int, QString);
+    void processNotification(QString, QString);
 
 private:
     ClipboardJSONFormatter * formatter;

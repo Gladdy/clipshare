@@ -22,8 +22,10 @@ ClipShareRunner::ClipShareRunner(QObject * parent) : QObject(parent)
     connect(this,SIGNAL(emitNetworkRequest(QJsonDocument)),manager,SLOT(processNetworkRequest(QJsonDocument)));
     connect(manager,SIGNAL(emitNetworkResponse(QJsonDocument)),this,SLOT(processNetworkResponse(QJsonDocument)));
 
-    //Errors
-    connect(settings,SIGNAL(emitSettingsError(int,QString)),this,SLOT(processError(int,QString)));
+    //Notifications
+    connect(settings,SIGNAL(emitNotification(QString,QString)),this,SLOT(processNotification(QString,QString)));
+    connect(manager,SIGNAL(emitNotification(QString,QString)),this,SLOT(processNotification(QString,QString)));
+    connect(formatter,SIGNAL(emitNotification(QString,QString)),this,SLOT(processNotification(QString,QString)));
 }
 void ClipShareRunner::initialize()
 {
@@ -40,68 +42,80 @@ void ClipShareRunner::processClipboardChange()
         clipboardTriggerList.removeFirst();
     }
 
-    emitNotification("amount of clips: ", QString::number(clipboardTriggerList.length()));
+    int amount = clipboardTriggerList.length();
 
-    /*
-    if(lastUpdated.elapsed() > 100)
-    {
-        const QMimeData * changedMimeData = QApplication::clipboard()->mimeData();
-        QJsonObject clipboardJSON;
-
-        for(QString t : supportedTypes) {
-            if(changedMimeData->hasFormat(t)) {
-                QByteArray data = changedMimeData->data(t);
-                clipboardJSON.insert(t,QString(data));
-            }
-        }
-
-        QJsonDocument doc { clipboardJSON };
-        QString clipboardJSONString {doc.toJson()};
-
-        if(clipboardJSONString.length() > maxTransmitSize)
-        {
-            emit error(2, "transmitting too much data, not executed");
-        }
-        else
-        {
-            emit writeToSocket(clipboardJSONString);
-        }
+    if(amount >= 2) {
+        emitNotification("amount of clips: ", QString::number(amount));
+        manager->testUpload();
     }
-    */
+
 }
 
 void ClipShareRunner::processNetworkResponse(QJsonDocument doc)
 {
     qDebug() << doc;
-
-    /*
-    mimeData = new QMimeData();
-
-    QJsonDocument strJsonDoc = QJsonDocument::fromJson(str.toLatin1());
-    QJsonObject strJsonObject = strJsonDoc.object();
-
-    for(QString type : supportedTypes)
-    {
-        if(strJsonObject.contains(type))
-        {
-            QByteArray data = strJsonObject[type].toString().toLatin1();
-            mimeData->setData(type, data);
-        }
-    }
-
-    lastUpdated = QTime::currentTime();
-    QApplication::clipboard()->setMimeData(mimeData);
-    emit writingToClipboard();
-    */
 }
 
-void ClipShareRunner::processError(int severity, QString message)
+void ClipShareRunner::processNotification(QString str, QString msg)
 {
-    emitNotification(QString::number(severity),message);
+    emitNotification(str, msg);
 }
 
 void ClipShareRunner::processCommand(QString str, QString msg)
 {
-    qDebug() << "processing command in clipsharerunner: " << str << "\t" << msg;
+    if(str == "connect")
+    {
+        if(msg == "checkcredentials")
+        {
+            manager->checkCredentials();
+        }
+    }
 }
+
+/*
+if(lastUpdated.elapsed() > 100)
+{
+    const QMimeData * changedMimeData = QApplication::clipboard()->mimeData();
+    QJsonObject clipboardJSON;
+
+    for(QString t : supportedTypes) {
+        if(changedMimeData->hasFormat(t)) {
+            QByteArray data = changedMimeData->data(t);
+            clipboardJSON.insert(t,QString(data));
+        }
+    }
+
+    QJsonDocument doc { clipboardJSON };
+    QString clipboardJSONString {doc.toJson()};
+
+    if(clipboardJSONString.length() > maxTransmitSize)
+    {
+        emit error(2, "transmitting too much data, not executed");
+    }
+    else
+    {
+        emit writeToSocket(clipboardJSONString);
+    }
+}
+*/
+
+/*
+mimeData = new QMimeData();
+
+QJsonDocument strJsonDoc = QJsonDocument::fromJson(str.toLatin1());
+QJsonObject strJsonObject = strJsonDoc.object();
+
+for(QString type : supportedTypes)
+{
+    if(strJsonObject.contains(type))
+    {
+        QByteArray data = strJsonObject[type].toString().toLatin1();
+        mimeData->setData(type, data);
+    }
+}
+
+lastUpdated = QTime::currentTime();
+QApplication::clipboard()->setMimeData(mimeData);
+emit writingToClipboard();
+*/
 

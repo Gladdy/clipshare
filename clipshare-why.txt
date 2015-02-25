@@ -1,7 +1,13 @@
 Market analysis.
 
 ## What does the product do?
+- Upload a file or piece of text by copying it twice within a certain timeframe.
+- Once uploaded the download link is returned to the clipboard for distribution.
+- Uploaded files have an expiry time by default
 
+- Invite someone to get 'special features'.
+  - Track the amount of views of your file
+  - Unlimited expiry time
 
 ## What are the competing products?
 

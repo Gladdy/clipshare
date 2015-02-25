@@ -16,7 +16,7 @@ void ApplicationSettings::initialize()
      */
     if(!configFile.open(QIODevice::ReadOnly))
     {
-        emitSettingsError(1,"Could not open config file: " + configFilename);
+        emitNotification("Error",tr("Could not open config file:") +" "+ configFilename);
         return;
     }
     else
@@ -27,7 +27,7 @@ void ApplicationSettings::initialize()
         configFileContents = QJsonDocument::fromJson(configFileContent);
 
         if(configFileContents.isNull()) {
-            emitSettingsError(1, "invalid config file");
+            emitNotification("Error", tr("Invalid config file"));
             return;
         }
     }
@@ -46,7 +46,7 @@ void ApplicationSettings::initialize()
     }
     else
     {
-        emitSettingsError(1, "no authorisation details provided!");
+        emitNotification("Information",tr("No authorisation details provided!"));
     }
 
 
@@ -55,10 +55,6 @@ void ApplicationSettings::initialize()
     {
         configObject["hostname"] = configFileObject["hostname"].toString();
         configObject["port"] = configFileObject["port"].toInt();
-    }
-    else
-    {
-        emitSettingsError(2, "no custom server provided");
     }
 
     config = QJsonDocument(configObject);
@@ -86,7 +82,7 @@ void ApplicationSettings::saveConfigToDisk()
 {
     configLock.lock();
 
-    qDebug() << config;
+    //qDebug() << config;
 
     configLock.unlock();
 }
