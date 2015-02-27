@@ -2,8 +2,14 @@
 #define CLIPBOARDJSONFORMATTER_H
 
 #include <QObject>
+#include <QMimeData>
+#include <QJsonDocument>
+#include <QList>
+#include <QUrl>
+#include <QImage>
 
 class ApplicationSettings;
+class QuaZip;
 
 class ClipboardJSONFormatter : public QObject
 {
@@ -16,11 +22,17 @@ public:
     ~ClipboardJSONFormatter() {
 
     }
+    QJsonDocument getRequestFormat(const QMimeData* data);
 
 signals:
     void emitNotification(QString, QString);
 
 private:
+    QString processImage(QImage img);
+    QString processFiles(QList<QString> files);
+    int appendFile(QString files, QString root, QString target);
+
+
     ApplicationSettings * settings;
 };
 

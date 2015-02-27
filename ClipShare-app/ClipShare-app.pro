@@ -4,7 +4,7 @@
 #
 #-------------------------------------------------
 
-CONFIG	 += c++11 Wall
+CONFIG	 += c++11
 QT       += widgets network gui
 
 RESOURCES     = clipshare.qrc
@@ -15,10 +15,12 @@ SOURCES  += main.cpp clipsharerunner.cpp statuswindow.cpp \
     applicationsettings.cpp \
     clipboardjsonformatter.cpp \
     networkmanager.cpp
+
 HEADERS  += clipsharerunner.h statuswindow.h \
     applicationsettings.h \
     clipboardjsonformatter.h \
-    networkmanager.h
+    networkmanager.h \
+    miniz.c
 
 DISTFILES += ../config.cfg
 

@@ -71,7 +71,7 @@ void ApplicationSettings::loadDefaults()
     QJsonObject configObject = config.object();
     configObject["hostname"] =  "84.85.97.221";
     configObject["port"] = 31443;
-    configObject["uploadSizeLimit"] = 2000;
+    configObject["uploadSizeLimit"] = 15000; //KB
     configObject["copyTimePeriod"] = 1000;
     config = QJsonDocument(configObject);
 

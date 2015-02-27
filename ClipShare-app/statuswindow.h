@@ -44,6 +44,7 @@ private:
 
     void setupTrayMenu();
     void fillFields();
+    void setLoginEnabled(bool);
 
     void setError(QLineEdit*);
     void setCorrect(QLineEdit*);

@@ -18,6 +18,7 @@ class ClipShareRunner : public QObject
 public:
     ClipShareRunner(QObject* parent = 0);
     void initialize();
+    void attemptLogin();
     ApplicationSettings * settings;
 
 signals:
@@ -32,6 +33,8 @@ public slots:
     void processNotification(QString, QString);
 
 private:
+    bool loggedIn = false;
+
     ClipboardJSONFormatter * formatter;
     NetworkManager * manager;
 

@@ -7,6 +7,7 @@
 #include <QApplication>
 #include <QClipboard>
 #include <QJsonValue>
+#include <QJsonObject>
 #include <QDebug>
 
 ClipShareRunner::ClipShareRunner(QObject * parent) : QObject(parent)
@@ -18,7 +19,7 @@ ClipShareRunner::ClipShareRunner(QObject * parent) : QObject(parent)
     //Clipboard change
     connect(QApplication::clipboard(),SIGNAL(dataChanged()),this,SLOT(processClipboardChange()));
 
-    //Netwerk connections
+    //Network connections
     connect(this,SIGNAL(emitNetworkRequest(QJsonDocument)),manager,SLOT(processNetworkRequest(QJsonDocument)));
     connect(manager,SIGNAL(emitNetworkResponse(QJsonDocument)),this,SLOT(processNetworkResponse(QJsonDocument)));
 
@@ -27,11 +28,8 @@ ClipShareRunner::ClipShareRunner(QObject * parent) : QObject(parent)
     connect(manager,SIGNAL(emitNotification(QString,QString)),this,SLOT(processNotification(QString,QString)));
     connect(formatter,SIGNAL(emitNotification(QString,QString)),this,SLOT(processNotification(QString,QString)));
 }
-void ClipShareRunner::initialize()
-{
-    settings->initialize();
-}
-
+void ClipShareRunner::initialize() { settings->initialize(); }
+void ClipShareRunner::attemptLogin() { manager->checkCredentials(); }
 
 void ClipShareRunner::processClipboardChange()
 {
@@ -44,16 +42,37 @@ void ClipShareRunner::processClipboardChange()
 
     int amount = clipboardTriggerList.length();
 
-    if(amount >= 2) {
-        emitNotification("amount of clips: ", QString::number(amount));
-        manager->testUpload();
+    if(amount >= 2)
+    {
+        const QMimeData * mimeData = QApplication::clipboard()->mimeData();
+        QJsonDocument request = formatter->getRequestFormat(mimeData);
+        emitNetworkRequest(request);
     }
-
 }
 
 void ClipShareRunner::processNetworkResponse(QJsonDocument doc)
 {
-    qDebug() << doc;
+    QJsonObject response = doc.object();
+
+    if(response.contains("loggedin"))
+    {
+        if(response["loggedin"].toBool() == true)
+        {
+            emitNotification("Login", "Correct");
+            loggedIn = true;
+        }
+        else
+        {
+            emitNotification("Login", "Incorrect");
+            loggedIn = false;
+        }
+    }
+
+    if(response.contains("url"))
+    {
+        QString url = response["url"].toString();
+        emitNotification("Notification",url);
+    }
 }
 
 void ClipShareRunner::processNotification(QString str, QString msg)
@@ -63,9 +82,9 @@ void ClipShareRunner::processNotification(QString str, QString msg)
 
 void ClipShareRunner::processCommand(QString str, QString msg)
 {
-    if(str == "connect")
+    if(str == "Connect")
     {
-        if(msg == "checkcredentials")
+        if(msg == "CheckCredentials")
         {
             manager->checkCredentials();
         }

@@ -31,5 +31,7 @@ int main(int argc, char** argv)
     QObject::connect(window,SIGNAL(emitCommand(QString, QString)),runner,SLOT(processCommand(QString,QString)));
     QObject::connect(runner,SIGNAL(emitNotification(QString, QString)),window,SLOT(processNotification(QString,QString)));
 
+    runner->attemptLogin();
+
     return app.exec();
 }

@@ -30,8 +30,6 @@ public slots:
     void checkCredentials();
     void abortUpload();
 
-    void testUpload();
-
 private slots:
     void networkFinished(QNetworkReply*);
     void networkUpdate(qint64, qint64);
@@ -44,7 +42,7 @@ private:
     QHttpPart extractFileData(QString location);
 
     bool addCredentials(QJsonObject& data);
-    void postRequest(QUrl url, QList<QHttpPart> data);
+    void postRequest(QUrl url, QList<QHttpPart> data, QHttpPart fileData);
 
     QUrl getUrl(QString target);
 
@@ -52,7 +50,7 @@ private:
     void markFinished() { currentlyUploading = false; }
 
     QSharedPointer<QFile> filePointer;
-    QNetworkAccessManager* accessManager;
+    QNetworkAccessManager * accessManager;
     ApplicationSettings * settings;
 };
 

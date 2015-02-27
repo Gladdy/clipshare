@@ -103,6 +103,7 @@ void StatusWindow::processNotification(QString str, QString msg)
 {
     if(str == "Error")
     {
+        qDebug() << "Received systray message" << msg;
         showTrayMessage(str + "\t" + msg);
     }
     else if (str == "Progress")
@@ -123,7 +124,32 @@ void StatusWindow::processNotification(QString str, QString msg)
             ui->progressBar_upload->setValue(0);
         }
     }
+    else if(str == "Login")
+    {
+        if(msg == "Correct")
+        {
+            showTrayMessage(tr("Logged in"),QSystemTrayIcon::Information);
+            setLoginEnabled(false);
+        }
+        else
+        {
+            showTrayMessage(tr("Incorrect credentials"),QSystemTrayIcon::Warning);
+            setLoginEnabled(true);
+        }
+    }
+    else if(str == "Notification")
+    {
+        showTrayMessage(msg,QSystemTrayIcon::Information);
+    }
 }
+void StatusWindow::setLoginEnabled(bool val) {
+    ui->lineEdit_email->setReadOnly(!val);
+    ui->lineEdit_email->setEnabled(val);
+    ui->lineEdit_password->setReadOnly(!val);
+    ui->lineEdit_password->setEnabled(val);
+    ui->pushButton_check->setEnabled(val);
+}
+
 void StatusWindow::iconActivated(QSystemTrayIcon::ActivationReason reason)
 {
     switch (reason)
@@ -149,7 +175,7 @@ void StatusWindow::processCheck()
     }
     else
     {
-        emitCommand("connect","checkcredentials");
+        emitCommand("Connect","CheckCredentials");
     }
 }
 

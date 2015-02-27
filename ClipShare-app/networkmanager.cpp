@@ -9,6 +9,7 @@
 #include <QFile>
 #include <QMimeDatabase>
 #include <QMimeData>
+#include <QNetworkAccessManager>
 
 NetworkManager::NetworkManager(ApplicationSettings * s, QObject* parent) :
     QObject(parent)
@@ -32,17 +33,25 @@ NetworkManager::~NetworkManager() {}
 
 void NetworkManager::processNetworkRequest(QJsonDocument jdoc)
 {
-    QJsonObject jobject = jdoc.object();
-    QString type;
-
-    if(addCredentials(jobject) == false) {
+    if(jdoc == QJsonDocument()) {
         return;
     }
+
+    if(currentlyUploading) {
+        emitNotification("Error","Already uploading a file");
+        return;
+    }
+    else
+    {
+        currentlyUploading = true;
+    }
+
+    QJsonObject jobject = jdoc.object();
+    QString type;
 
     if(jobject.contains("type"))
     {
         type = jobject["type"].toString();
-        jobject.erase(jobject.find("type"));
     }
     else
     {
@@ -52,7 +61,7 @@ void NetworkManager::processNetworkRequest(QJsonDocument jdoc)
 
     if(type == "text")
     {
-        //extractTextData(jobject, "postData");
+        postRequest(getUrl("content"),extractTextData(jobject), QHttpPart());
     }
     else if(type == "file" || type == "image")
     {
@@ -66,10 +75,9 @@ void NetworkManager::processNetworkRequest(QJsonDocument jdoc)
         else
         {
             location = jobject["location"].toString();
-            jobject.erase(jobject.find("type"));
         }
 
-        //extractFileData(jobject, type, location, "postData");
+        postRequest(getUrl("content"),extractTextData(jobject), extractFileData(location));
     }
     else
     {
@@ -83,35 +91,12 @@ void NetworkManager::checkCredentials()
 
     if(addCredentials(jobject) == true)
     {
-        postRequest(getUrl("login_api"),extractTextData(jobject));
+        postRequest(getUrl("login_api"),extractTextData(jobject), QHttpPart());
     }
 }
 void NetworkManager::abortUpload() {
 
 }
-void NetworkManager::testUpload()
-{
-    if(currentlyUploading) {
-        emitNotification("Error","Already uploading a file");
-        return;
-    }
-    else
-    {
-        currentlyUploading = true;
-    }
-
-
-    QJsonObject jobject;
-
-    if(addCredentials(jobject) == true)
-    {
-        QList<QHttpPart> http = extractTextData(jobject);
-        http.append(extractFileData(":/icons/beach.jpg"));
-
-        postRequest(getUrl("content"),http);
-    }
-}
-
 bool NetworkManager::addCredentials(QJsonObject& object)
 {
     QString email = settings->getSetting("email").toString();
@@ -158,24 +143,24 @@ QHttpPart NetworkManager::extractFileData(QString location)
 
     QString mimeTypeString = mimeType.name();
 
-    qDebug() << "mimetype" << mimeTypeString;
-
     filePart.setHeader(QNetworkRequest::ContentTypeHeader,QVariant(mimeTypeString));
-    filePart.setHeader(QNetworkRequest::ContentDispositionHeader, QVariant("form-data; name=\"file\""));
+    filePart.setHeader(QNetworkRequest::ContentDispositionHeader, QVariant("form-data; name=\"file\"; filename=\""+ filename +"\""));
     filePart.setBodyDevice(filePointer.data());
 
     return filePart;
 }
-void NetworkManager::postRequest(QUrl url, QList<QHttpPart> data)
+void NetworkManager::postRequest(QUrl url, QList<QHttpPart> textData, QHttpPart fileData)
 {
     QNetworkRequest request(url);
-
     QHttpMultiPart * multiPart = new QHttpMultiPart(QHttpMultiPart::FormDataType);
-    for(QHttpPart part : data) {
-        multiPart->append(part);
+
+    if(fileData != QHttpPart()) {
+        textData.append(fileData);
     }
 
-    multiPart->dumpObjectInfo();
+    for(QHttpPart part : textData) {
+        multiPart->append(part);
+    }
 
     QNetworkReply * reply = accessManager->post(request, multiPart);
 
@@ -194,9 +179,23 @@ QUrl NetworkManager::getUrl(QString target)
 }
 void NetworkManager::networkFinished(QNetworkReply* reply)
 {
-    qDebug() << "Network reply: " << reply->readAll();
+    QByteArray responseData = reply->readAll();
     reply->deleteLater();
     markFinished();
+
+    qDebug() << "Network reply: " << responseData;
+
+    QJsonDocument responseJson = QJsonDocument::fromJson(responseData);
+
+    if(responseJson.isNull())
+    {
+        emitNotification("Error", tr("Invalid response"));
+        return;
+    }
+    else
+    {
+        emitNetworkResponse(responseJson);
+    }
 }
 void NetworkManager::networkUpdate(qint64 a, qint64 b)
 {
