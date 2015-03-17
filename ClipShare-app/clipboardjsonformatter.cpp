@@ -23,7 +23,7 @@ QJsonDocument ClipboardJSONFormatter::getRequestFormat(const QMimeData *dataSour
     {
         if( !(format.startsWith("application/") || format.startsWith("image/")) )
         {
-            qDebug() << "Found format: " << format << dataSource->data(format);
+            qDebug() << "Found format: " << format;
             mimeDataResult.insert(format, QString(dataSource->data(format)));
         }
         else
@@ -32,7 +32,9 @@ QJsonDocument ClipboardJSONFormatter::getRequestFormat(const QMimeData *dataSour
         }
     }
 
-
+    /*
+     *  The clipboard contains either an image or a file, but not both for this purpose
+     */
     if(dataSource->hasImage())
     {
         QVariant v = dataSource->imageData();
@@ -46,30 +48,52 @@ QJsonDocument ClipboardJSONFormatter::getRequestFormat(const QMimeData *dataSour
         QList<QUrl> files = dataSource->urls();
         QList<QString> stringFiles;
 
+        qDebug() << "Files to be added";
         for(QUrl url : files ) {
-            stringFiles.append(url.toString().mid(7));
+            QString localFileName = url.toLocalFile();
+            QFile localFile (localFileName);
+            if(localFile.exists()) {
+                stringFiles.append(localFileName);
+                qDebug() << localFileName;
+            }
         }
 
-        QString location = processFiles(stringFiles);
+        if(stringFiles.length() > 0)
+        {
+            QString location = processFiles(stringFiles);
 
-        if(location != "")
-        {
-            mimeDataResult.insert("type","file");
-            mimeDataResult.insert("location",location);
-        }
-        else
-        {
-            emitNotification("Error",tr("Copied files are too large to be sent"));
-            return QJsonDocument();
+            if(location != "")
+            {
+                mimeDataResult.insert("type","file");
+                mimeDataResult.insert("location",location);
+            }
+            else
+            {
+                emitNotification("Error",tr("Copied files are too large to be sent"));
+                return QJsonDocument();
+            }
         }
     }
-    else
-    {
+
+    /*
+     *  Additionally, add the textual representation to the JSON structure.
+     */
+    if(!mimeDataResult.contains("type")) {
         mimeDataResult.insert("type","text");
     }
+    if(dataSource->hasText()) {
+        mimeDataResult.insert("text/plain",dataSource->text());
+    }
+    if(dataSource->hasHtml()) {
+        mimeDataResult.insert("text/html",dataSource->html());
+    }
+
 
     QJsonDocument doc;
     doc.setObject(mimeDataResult);
+
+    qDebug() << "ended clipboardjsonformatter";
+
     return doc;
 }
 QString ClipboardJSONFormatter::processImage(QImage img) {

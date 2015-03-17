@@ -14,6 +14,11 @@
 NetworkManager::NetworkManager(ApplicationSettings * s, QObject* parent) :
     QObject(parent)
 {
+    if(!QSslSocket::supportsSsl()) {
+        qDebug() << "SSL UNSUPPORTED!";
+        exit(1);
+    }
+
     settings = s;
     accessManager = new QNetworkAccessManager(this);
 
@@ -61,7 +66,7 @@ void NetworkManager::processNetworkRequest(QJsonDocument jdoc)
 
     if(type == "text")
     {
-        postRequest(getUrl("content"),extractTextData(jobject), QHttpPart());
+        postRequest(getUrl("content"), extractTextData(jobject), QHttpPart());
     }
     else if(type == "file" || type == "image")
     {
