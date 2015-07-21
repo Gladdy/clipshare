@@ -39,11 +39,12 @@ NetworkManager::~NetworkManager() {}
 void NetworkManager::processNetworkRequest(QJsonDocument jdoc)
 {
     if(jdoc == QJsonDocument()) {
+        qDebug() << "Empty request";
         return;
     }
 
     if(currentlyUploading) {
-        emitNotification("Error","Already uploading a file");
+        emitMessage(Error,"Already uploading a file");
         return;
     }
     else
@@ -52,17 +53,7 @@ void NetworkManager::processNetworkRequest(QJsonDocument jdoc)
     }
 
     QJsonObject jobject = jdoc.object();
-    QString type;
-
-    if(jobject.contains("type"))
-    {
-        type = jobject["type"].toString();
-    }
-    else
-    {
-        emitNotification("Error",tr("Malformed internal JSON"));
-        return;
-    }
+    QString type = jobject["type"].toString();
 
     if(type == "text")
     {
@@ -70,26 +61,15 @@ void NetworkManager::processNetworkRequest(QJsonDocument jdoc)
     }
     else if(type == "file" || type == "image")
     {
-        QString location;
-
-        if(jobject.contains("location") == false)
-        {
-            emitNotification("Error",tr("No location specified"));
-            return;
-        }
-        else
-        {
-            location = jobject["location"].toString();
-        }
-
+        QString location = jobject["location"].toString();
         postRequest(getUrl("content"),extractTextData(jobject), extractFileData(location));
     }
     else
     {
-        emitNotification("Error",tr("Invalid data type"));
-        return;
+        emitMessage(Error,tr("Invalid data type"));
     }
 }
+
 void NetworkManager::checkCredentials()
 {
     QJsonObject jobject;
@@ -99,17 +79,19 @@ void NetworkManager::checkCredentials()
         postRequest(getUrl("login_api"),extractTextData(jobject), QHttpPart());
     }
 }
+
 void NetworkManager::abortUpload() {
 
 }
+
 bool NetworkManager::addCredentials(QJsonObject& object)
 {
-    QString email = settings->getSetting("email").toString();
-    QString password = settings->getSetting("password").toString();
+    QString email = settings->getEmail();
+    QString password = settings->getPassword();
 
     if(email.length() == 0 || password.length() == 0)
     {
-        emitNotification("Error","Could not find login details");
+        emitMessage(Error,"Could not find login details");
         return false;
     }
 
@@ -134,15 +116,21 @@ QList<QHttpPart> NetworkManager::extractTextData(QJsonObject data)
 QHttpPart NetworkManager::extractFileData(QString location)
 {
     QHttpPart filePart;
-    filePointer.reset(new QFile(location));
+    QFile file (location);
+    QByteArray fileData;
 
-    if(!filePointer->open(QIODevice::ReadOnly))
+    qDebug() << "File to be added: " << location;
+
+    if(!file.open(QIODevice::ReadOnly))
     {
-        emitNotification("Error","Invalid filename in uploader");
+        emitMessage(Error,"Invalid filename in uploader");
         return filePart;
     }
 
-    QString filename = filePointer->fileName();
+    fileData = file.readAll();
+    file.close();
+
+    QString filename = file.fileName();
     QMimeDatabase database;
     QMimeType mimeType = database.mimeTypeForFile(filename);
 
@@ -150,10 +138,11 @@ QHttpPart NetworkManager::extractFileData(QString location)
 
     filePart.setHeader(QNetworkRequest::ContentTypeHeader,QVariant(mimeTypeString));
     filePart.setHeader(QNetworkRequest::ContentDispositionHeader, QVariant("form-data; name=\"file\"; filename=\""+ filename +"\""));
-    filePart.setBodyDevice(filePointer.data());
+    filePart.setBody(fileData);
 
     return filePart;
 }
+
 void NetworkManager::postRequest(QUrl url, QList<QHttpPart> textData, QHttpPart fileData)
 {
     QNetworkRequest request(url);
@@ -173,15 +162,17 @@ void NetworkManager::postRequest(QUrl url, QList<QHttpPart> textData, QHttpPart 
 
     connect(reply,SIGNAL(uploadProgress(qint64,qint64)),this,SLOT(networkUpdate(qint64,qint64)));
 }
+
 QUrl NetworkManager::getUrl(QString target)
 {
-    QString hostname = settings->getSetting("hostname").toString();
-    int portInt = settings->getSetting("port").toInt();
-    QString port = QString::number(portInt);
+    QString connectString = settings->getConnectString();
+    QString urlString = "https://"+connectString+"/"+target;
 
-    QString urlString = "https://"+hostname+":"+port+"/"+target;
+    qDebug() << urlString;
+
     return QUrl(urlString);
 }
+
 void NetworkManager::networkFinished(QNetworkReply* reply)
 {
     QByteArray responseData = reply->readAll();
@@ -194,7 +185,7 @@ void NetworkManager::networkFinished(QNetworkReply* reply)
 
     if(responseJson.isNull())
     {
-        emitNotification("Error", tr("Invalid response"));
+        emitMessage(Error, tr("Invalid JSON response from server"));
         return;
     }
     else
@@ -202,12 +193,13 @@ void NetworkManager::networkFinished(QNetworkReply* reply)
         emitNetworkResponse(responseJson);
     }
 }
+
 void NetworkManager::networkUpdate(qint64 a, qint64 b)
 {
     qDebug() << "Network update: " << a << "\t" << b;
 
     if(currentlyUploading) {
-        emitNotification("Progress", QString::number(a) + "\t" + QString::number(b));
+        emitMessage(Progress, QString::number(a) + "\t" + QString::number(b));
     }
 }
 void NetworkManager::networkError(QNetworkReply::NetworkError networkError)
@@ -215,6 +207,7 @@ void NetworkManager::networkError(QNetworkReply::NetworkError networkError)
     qDebug() << "Network error: " << networkError;
     markFinished();
 }
+
 void NetworkManager::sslErrors(QNetworkReply* reply, QList<QSslError> errors)
 {
     qDebug() << "SSL error: " << reply->readAll() << errors;

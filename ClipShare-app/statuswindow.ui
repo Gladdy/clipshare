@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>406</width>
-    <height>289</height>
+    <width>318</width>
+    <height>230</height>
    </rect>
   </property>
   <property name="sizePolicy">
@@ -52,8 +52,8 @@
    </property>
    <layout class="QVBoxLayout" name="verticalLayout_2">
     <item>
-     <layout class="QVBoxLayout" name="verticalLayout">
-      <item>
+     <layout class="QGridLayout" name="gridLayout">
+      <item row="0" column="0">
        <widget class="QTabWidget" name="tabWidget">
         <property name="sizePolicy">
          <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
@@ -112,7 +112,7 @@
               <property name="sizeHint" stdset="0">
                <size>
                 <width>20</width>
-                <height>40</height>
+                <height>0</height>
                </size>
               </property>
              </spacer>
@@ -182,13 +182,10 @@
                 </property>
                </widget>
               </item>
-              <item row="1" column="1">
-               <widget class="QLineEdit" name="lineEdit_maxsize"/>
-              </item>
               <item row="2" column="0">
                <widget class="QLabel" name="label_progressNotification">
                 <property name="text">
-                 <string>Progress notifications</string>
+                 <string>Display notifications</string>
                 </property>
                </widget>
               </item>
@@ -202,7 +199,7 @@
               <item row="3" column="0">
                <widget class="QLabel" name="label_changeNotification">
                 <property name="text">
-                 <string>Clipboard change notifications</string>
+                 <string>Store uploaded files locally</string>
                 </property>
                </widget>
               </item>
@@ -211,52 +208,6 @@
                 <property name="text">
                  <string/>
                 </property>
-               </widget>
-              </item>
-              <item row="4" column="0">
-               <widget class="QLabel" name="label_NSA">
-                <property name="text">
-                 <string>Send your data to the NSA?</string>
-                </property>
-               </widget>
-              </item>
-              <item row="4" column="1">
-               <widget class="QComboBox" name="comboBox_NSA">
-                <item>
-                 <property name="text">
-                  <string>Yes</string>
-                 </property>
-                </item>
-                <item>
-                 <property name="text">
-                  <string>Affirmative</string>
-                 </property>
-                </item>
-                <item>
-                 <property name="text">
-                  <string>Fine</string>
-                 </property>
-                </item>
-                <item>
-                 <property name="text">
-                  <string>Good</string>
-                 </property>
-                </item>
-                <item>
-                 <property name="text">
-                  <string>Okay</string>
-                 </property>
-                </item>
-                <item>
-                 <property name="text">
-                  <string>By all means</string>
-                 </property>
-                </item>
-                <item>
-                 <property name="text">
-                  <string>Naturally</string>
-                 </property>
-                </item>
                </widget>
               </item>
              </layout>
@@ -270,6 +221,9 @@
                <number>24</number>
               </property>
              </widget>
+            </item>
+            <item>
+             <widget class="QLineEdit" name="lineEdit_downloadLink"/>
             </item>
            </layout>
           </item>
@@ -295,7 +249,7 @@
         </widget>
        </widget>
       </item>
-      <item>
+      <item row="1" column="0">
        <layout class="QHBoxLayout" name="bar_bottom">
         <item>
          <spacer name="horizontalSpacer">

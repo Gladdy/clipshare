@@ -7,7 +7,6 @@
 #include <QDir>
 #include <QFileInfo>
 #include <QFile>
-#include <QDir>
 #include <QDirIterator>
 #include <QJsonObject>
 
@@ -45,22 +44,37 @@ QJsonDocument ClipboardJSONFormatter::getRequestFormat(const QMimeData *dataSour
     }
     else if(dataSource->hasUrls())
     {
-        QList<QUrl> files = dataSource->urls();
-        QList<QString> stringFiles;
+        QList<QUrl> urls = dataSource->urls();
+
+        QList<QString> files;
+        QList<QString> folders;
 
         qDebug() << "Files to be added";
-        for(QUrl url : files ) {
-            QString localFileName = url.toLocalFile();
-            QFile localFile (localFileName);
-            if(localFile.exists()) {
-                stringFiles.append(localFileName);
-                qDebug() << localFileName;
+        for(QUrl url : urls )
+        {
+            QString localname = url.toLocalFile();
+            QDir dir (localname);
+            QFile file (localname);
+
+            if(dir.exists())
+            {
+                folders.append(dir.absolutePath());
+                qDebug() << "FOLDER: " << dir;
+            }
+            else if (file.exists())
+            {
+                QFileInfo info (file);
+                files.append(info.absoluteFilePath());
+                qDebug() << "FILE: " << info.absoluteFilePath();
+            }
+            else {
+                qDebug() << "URL not found: " << url;
             }
         }
 
-        if(stringFiles.length() > 0)
+        if(files.length() || folders.length())
         {
-            QString location = processFiles(stringFiles);
+            QString location = processFilesFolders(files, folders);
 
             if(location != "")
             {
@@ -69,7 +83,7 @@ QJsonDocument ClipboardJSONFormatter::getRequestFormat(const QMimeData *dataSour
             }
             else
             {
-                emitNotification("Error",tr("Copied files are too large to be sent"));
+                emitMessage(Error,tr("Copied files are too large to be sent"));
                 return QJsonDocument();
             }
         }
@@ -92,156 +106,179 @@ QJsonDocument ClipboardJSONFormatter::getRequestFormat(const QMimeData *dataSour
     QJsonDocument doc;
     doc.setObject(mimeDataResult);
 
-    qDebug() << "ended clipboardjsonformatter";
+    qDebug() << "Finished formatting clipboard as JSON";
 
     return doc;
 }
 QString ClipboardJSONFormatter::processImage(QImage img) {
-    return "";
+    return "hai";
 }
-QString ClipboardJSONFormatter::processFiles(QList<QString> files)
+QString ClipboardJSONFormatter::processFilesFolders(QList<QString> files, QList<QString> folders)
 {
+    QDir dir(storageLocation);
+    if (!dir.exists()) { dir.mkdir("."); }
+
+    /*
+     *  Fetch settings and initialize variables
+     */
     qint64 totalSize = 0;
-    qint64 maxSize = settings->getSetting("uploadSizeLimit").toInt()*1000;
+    qint64 maxSize = settings->getSizeLimit();
     bool overflow = false;
 
+    //You need to zip when there are multiple locations selected or you selected a folder
+    bool needsZipping = (files.length() > 1 || folders.length());
 
-    QDir rootDir (files.first());
-    if(files.length() == 1 && !rootDir.exists())
+    if(needsZipping)
     {
-        /**
-         *  Simply emit the filename for uploading
-         *  If there is only a single entry and that is not a folder
-         */
-        QString onlyFile = files.first();
+        qDebug() << "PREPARE FOR ZIPPING";
 
-        QFile file (onlyFile);
-        if(file.open(QIODevice::ReadOnly))
+        // Extract a logical filename from the files and folders
+        // Find the root directory of the selected files
+        QString targetFilename;
+        QString rootLocation;
+
+        if(files.length() > 1)
         {
-            QByteArray data = file.readAll();
-            totalSize = data.length();
-            file.close();
+            // Get a name from the files
+            QFileInfo info0 (files.at(0));
+            QFileInfo info1 (files.at(1));
+            targetFilename = info0.baseName() + "_" + info1.baseName();
 
-            qDebug() << "Opened: " << onlyFile << totalSize;
-
-            if(totalSize < maxSize)
-            {
-                return onlyFile;
+            if(files.length() > 2) {
+                targetFilename.append("_etc");
             }
+
+            rootLocation = files.at(0);
         }
         else
         {
-            qDebug() << "Error: " << onlyFile << file.errorString();
+            // Get a name from the folders
+            QDir dir (folders.at(0));
+            targetFilename = dir.dirName();
+            rootLocation = folders.at(0);
         }
 
-        return "";
-    }
-    else
-    {
-        /**
-         * Start zipping files because (possibly multiple) folders or multiple files were copied
-         * Delete the archive to start fresh
-         */
-        QString target = "buffer";
-        target.append(".zip");
-        target.prepend(QDir::currentPath() + "/");
-        remove(target.toLatin1().constData());
+        targetFilename.append(".zip");
 
-        QList<QString> fileLocations;
-        QList<QString> folderLocations;
+        QString target = getProperTarget(targetFilename);
 
-        /*
-         * Split the selection into files and folders
-         */
-        for(QString filename : files)
-        {
-            QDir dir (filename);
-            if(dir.exists()) {
-                folderLocations.append(filename);
-            } else {
-                fileLocations.append(filename);
+        for(QString file : files) {
+            QString tempRootLocation = "";
+            int i = 0;
+            while(i < file.length() && i < rootLocation.length() && file.at(i) == rootLocation.at(i)) {
+                tempRootLocation.append(file.at(i));
+                i++;
             }
+            rootLocation = tempRootLocation;
+        }
+        for(QString folder : folders) {
+            QString tempRootLocation = "";
+            int i = 0;
+            while(i < folder.length() && i < rootLocation.length() && folder.at(i) == rootLocation.at(i)) {
+                tempRootLocation.append(folder.at(i));
+                i++;
+            }
+            rootLocation = tempRootLocation;
         }
 
-        /*
-         * Extract the root of the copying from the elements
-         */
-        QString rootElement;
-        if(fileLocations.length()) {
-            rootElement = fileLocations.at(0);
-        } else {
-            rootElement = folderLocations.at(0);
-        }
-
-        int i = rootElement.size() - 1;
-
-        while(rootElement.at(i) != '/' && rootElement.at(i) != '\\') {
+        //Deal with the case that all selected files start with the same characters.
+        //If so, you'd end up with '/home/martijn/te' for 'text.txt' and 'test.txt' instead of /home/martijn
+        int i = rootLocation.length() - 1;
+        while(i > 0) {
+            if(rootLocation.at(i) == '/') break;
             i--;
         }
 
-        QString root = rootElement;
-        root.truncate(i+1);
+        rootLocation = rootLocation.left(i);
+        QDir rootDir (rootLocation);
+
 
         /*
          * Add the files to the archive
          */
-        for(QString filename : fileLocations)
+        for(QString file : files)
         {
-            if(overflow == true) { break; }
-
-            totalSize += appendFile(filename, root, target);
-            if(totalSize > maxSize) { overflow = true; }
+            if(totalSize > maxSize) { overflow = true; break;}
+            totalSize += appendFile(file, rootDir, target);
             qDebug() << totalSize << maxSize;
         }
 
         /*
          * Add the files in the folders recursively to the archive
          */
-        for(QString filename : folderLocations)
+        for(QString folder : folders)
         {
-            if(overflow == true) { break; }
-
-            QDir dir (filename);
+            QDir dir (folder);
             dir.setFilter(QDir::Files);
             QDirIterator it(dir, QDirIterator::Subdirectories);
 
-            while(it.hasNext() && overflow == false)
+            while(it.hasNext())
             {
-                totalSize += appendFile(it.next(), root, target);
-                if(totalSize > maxSize) { overflow = true; }
+                if(totalSize > maxSize) { overflow = true; break;}
+                totalSize += appendFile(it.next(), rootDir, target);
                 qDebug() << totalSize << maxSize;
             }
         }
 
-        if(overflow == true)
-        {
-            remove(target.toLatin1().constData());
-            return "";
-        }
-        else
+        if(overflow == false)
         {
             return target;
         }
     }
-}
-int ClipboardJSONFormatter::appendFile(QString filename, QString root, QString target)
-{
-    int size = 0;
-    QFile file (filename);
-
-    if(file.open(QIODevice::ReadOnly))
+    else
     {
-        QByteArray qdata = file.readAll();
+        /**
+         *  Simply emit the filename for uploading
+         *  If there is only a single entry and that is not a folder
+         */
+        QString fileLocation = files.first();
+        QFileInfo info (fileLocation);
+        QString target = getProperTarget(info.fileName());
+        QFile::copy(fileLocation, target);
+        QFile targetFile (target);
+
+        if(targetFile.exists())
+        {
+            if(targetFile.size() <= maxSize)
+            {
+                qDebug() << "Copied to : " + target;
+                return target;
+            }
+            else
+            {
+                qDebug () << "File too large";
+            }
+        }
+        else
+        {
+            return "";
+        }
+    }
+
+    return "";
+}
+int ClipboardJSONFormatter::appendFile(QString sourceFileLocation, QDir rootDir, QString targetArchiveLocation)
+{
+    qDebug() << "ROOTDIR: " << rootDir.path();
+
+    int size = 0;
+    QFile sourceFile (sourceFileLocation);
+    QString localFilename = rootDir.relativeFilePath(sourceFileLocation);
+
+    if(sourceFile.open(QIODevice::ReadOnly))
+    {
+        QByteArray qdata = sourceFile.readAll();
+        sourceFile.close();
+
         size = qdata.size();
 
-        QString localFilename = filename.mid(root.size());
         const char * comment = "Adding file";
 
         char archive_name_buffer[1024];
         char archive_local_filename_buffer[1024];
         const char * file_data = qdata.constData();
 
-        sprintf(archive_name_buffer, "%s", target.toLatin1().constData());
+        sprintf(archive_name_buffer, "%s", targetArchiveLocation.toLatin1().constData());
         sprintf(archive_local_filename_buffer, "%s", localFilename.toLatin1().constData());
 
         mz_zip_add_mem_to_archive_file_in_place(
@@ -254,13 +291,29 @@ int ClipboardJSONFormatter::appendFile(QString filename, QString root, QString t
                     MZ_BEST_COMPRESSION
                     );
 
-        qDebug() << "Added" << filename << " : " << localFilename << " @ " << target << size;
-        file.close();
+        qDebug() << "Added\n" << localFilename << " from\n" << sourceFileLocation << " to\n" << targetArchiveLocation << size;
     }
     else
     {
-        //qDebug() << "Error: " << filename << file.errorString();
+        qDebug() << "Error adding: " << sourceFileLocation << sourceFile.errorString();
     }
 
     return size;
+}
+QString ClipboardJSONFormatter::getProperTarget(QString wantedFileName)
+{
+    QString target = storageLocation + wantedFileName;
+    QFile * targetFile = new QFile(target);
+    int i = 2;
+
+    //Make sure that we have an unique target file name
+    while(targetFile->exists()) {
+        target = storageLocation + QString::number(i) + "-"+ wantedFileName;
+        delete targetFile;
+        targetFile = new QFile(target);
+        i++;
+    }
+    delete targetFile;
+
+    return target;
 }

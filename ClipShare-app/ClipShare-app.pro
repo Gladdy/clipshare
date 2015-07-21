@@ -20,9 +20,11 @@ HEADERS  += clipsharerunner.h statuswindow.h \
     applicationsettings.h \
     clipboardjsonformatter.h \
     networkmanager.h \
-    miniz.c
+    miniz.c \
+    messagetype.h
 
 DISTFILES += ../config.cfg
+QMAKE_LFLAGS += -static-libgcc -static-libstdc++
 
 for(FILE, $$DISTFILES) {
     QMAKE_POST_LINK += $(COPY_DIR) $$PWD/FILE $$OUT_PWD

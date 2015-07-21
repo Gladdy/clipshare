@@ -24,25 +24,35 @@ ClipShareRunner::ClipShareRunner(QObject * parent) : QObject(parent)
     connect(manager,SIGNAL(emitNetworkResponse(QJsonDocument)),this,SLOT(processNetworkResponse(QJsonDocument)));
 
     //Notifications
-    connect(settings,SIGNAL(emitNotification(QString,QString)),this,SLOT(processNotification(QString,QString)));
-    connect(manager,SIGNAL(emitNotification(QString,QString)),this,SLOT(processNotification(QString,QString)));
-    connect(formatter,SIGNAL(emitNotification(QString,QString)),this,SLOT(processNotification(QString,QString)));
-}
-void ClipShareRunner::initialize() { settings->initialize(); }
-void ClipShareRunner::attemptLogin() { manager->checkCredentials(); }
+    connect(settings,SIGNAL(emitMessage(MessageType,QString)),this,SLOT(processMessage(MessageType,QString)));
+    connect(manager,SIGNAL(emitMessage(MessageType,QString)),this,SLOT(processMessage(MessageType,QString)));
+    connect(formatter,SIGNAL(emitMessage(MessageType,QString)),this,SLOT(processMessage(MessageType,QString)));
 
+    settings->loadConfigFile();
+    manager->checkCredentials();
+}
 void ClipShareRunner::processClipboardChange()
 {
-    clipboardTriggerList.push_back(QTime::currentTime());
-    int period = settings->getSetting("copyTimePeriod").toInt();
+    qDebug() << "Clipboard changed!";
 
+    if(ignoreClipboardChange) {
+        ignoreClipboardChange = false;
+        return;
+    }
+
+    //Don't trigger 2 times within 50 milliseconds
+    if(clipboardTriggerList.last().elapsed() < 50) {
+        return;
+    }
+
+    //Filter out the events outside the DoubleCopyPeriod
+    clipboardTriggerList.push_back(QTime::currentTime());
+    int period = settings->getDoubleCopyPeriod();
     while(clipboardTriggerList.front().elapsed() > period) {
         clipboardTriggerList.removeFirst();
     }
 
-    int amount = clipboardTriggerList.length();
-
-    if(amount >= 2)
+    if(clipboardTriggerList.length() >= 2)
     {
         const QMimeData * mimeData = QApplication::clipboard()->mimeData();
         QJsonDocument request = formatter->getRequestFormat(mimeData);
@@ -58,12 +68,12 @@ void ClipShareRunner::processNetworkResponse(QJsonDocument doc)
     {
         if(response["loggedin"].toBool() == true)
         {
-            emitNotification("Login", "Correct");
+            emitMessage(Login, "Correct");
             loggedIn = true;
         }
         else
         {
-            emitNotification("Login", "Incorrect");
+            emitMessage(Login, "Incorrect");
             loggedIn = false;
         }
     }
@@ -71,70 +81,31 @@ void ClipShareRunner::processNetworkResponse(QJsonDocument doc)
     if(response.contains("url"))
     {
         QString url = response["url"].toString();
-        emitNotification("Notification",url);
+        setClipboardText(url);
+        emitMessage(URL, url);
     }
 }
-
-void ClipShareRunner::processNotification(QString str, QString msg)
+void ClipShareRunner::setClipboardText(QString url)
 {
-    emitNotification(str, msg);
+    ignoreClipboardChange = true;
+    QMimeData * mimeData = new QMimeData();
+    mimeData->setText(url);
+    QApplication::clipboard()->setMimeData(mimeData);
 }
 
-void ClipShareRunner::processCommand(QString str, QString msg)
+void ClipShareRunner::processMessage(MessageType type, QString message)
 {
-    if(str == "Connect")
-    {
-        if(msg == "CheckCredentials")
+    emitMessage(type, message);
+}
+
+void ClipShareRunner::processCommand(CommandType type, QString message)
+{
+    switch(type) {
+    case Connect:
+        if(message == "CheckCredentials")
         {
             manager->checkCredentials();
         }
+        break;
     }
 }
-
-/*
-if(lastUpdated.elapsed() > 100)
-{
-    const QMimeData * changedMimeData = QApplication::clipboard()->mimeData();
-    QJsonObject clipboardJSON;
-
-    for(QString t : supportedTypes) {
-        if(changedMimeData->hasFormat(t)) {
-            QByteArray data = changedMimeData->data(t);
-            clipboardJSON.insert(t,QString(data));
-        }
-    }
-
-    QJsonDocument doc { clipboardJSON };
-    QString clipboardJSONString {doc.toJson()};
-
-    if(clipboardJSONString.length() > maxTransmitSize)
-    {
-        emit error(2, "transmitting too much data, not executed");
-    }
-    else
-    {
-        emit writeToSocket(clipboardJSONString);
-    }
-}
-*/
-
-/*
-mimeData = new QMimeData();
-
-QJsonDocument strJsonDoc = QJsonDocument::fromJson(str.toLatin1());
-QJsonObject strJsonObject = strJsonDoc.object();
-
-for(QString type : supportedTypes)
-{
-    if(strJsonObject.contains(type))
-    {
-        QByteArray data = strJsonObject[type].toString().toLatin1();
-        mimeData->setData(type, data);
-    }
-}
-
-lastUpdated = QTime::currentTime();
-QApplication::clipboard()->setMimeData(mimeData);
-emit writingToClipboard();
-*/
-

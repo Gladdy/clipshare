@@ -1,6 +1,8 @@
 #ifndef CLIPSHARERUNNER_H
 #define CLIPSHARERUNNER_H
 
+#include "messagetype.h"
+
 #include <QObject>
 #include <QMimeData>
 #include <QString>
@@ -17,28 +19,32 @@ class ClipShareRunner : public QObject
     Q_OBJECT
 public:
     ClipShareRunner(QObject* parent = 0);
-    void initialize();
-    void attemptLogin();
     ApplicationSettings * settings;
 
 signals:
     void emitNetworkRequest(QJsonDocument);
-    void emitNotification(QString, QString);
+    void emitMessage(MessageType, QString message);
 
 public slots:
     void processClipboardChange();
 
     void processNetworkResponse(QJsonDocument);
-    void processCommand(QString, QString);
-    void processNotification(QString, QString);
+    void processCommand(CommandType, QString command);
+
+    /**
+     * @brief processMessage
+     * Aggregate all messages from the ApplicationSettings, ClipboardJSONFormatter and NetworkManager
+     * forward them to the StatusWindow
+     */
+    void processMessage(MessageType, QString message);
 
 private:
     bool loggedIn = false;
+    void setClipboardText(QString url);
+    bool ignoreClipboardChange = false;
 
     ClipboardJSONFormatter * formatter;
     NetworkManager * manager;
-
-    QMimeData * mimeData;
 
     QList<QTime> clipboardTriggerList;
 };

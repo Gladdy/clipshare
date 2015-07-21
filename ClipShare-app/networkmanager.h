@@ -1,6 +1,8 @@
 #ifndef NETWORKMANAGER_H
 #define NETWORKMANAGER_H
 
+#include "messagetype.h"
+
 #include <QObject>
 #include <QJsonDocument>
 #include <QNetworkReply>
@@ -23,7 +25,7 @@ public:
 
 signals:
     void emitNetworkResponse(QJsonDocument);
-    void emitNotification(QString, QString);
+    void emitMessage(MessageType, QString);
 
 public slots:
     void processNetworkRequest(QJsonDocument);
