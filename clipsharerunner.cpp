@@ -41,7 +41,7 @@ void ClipShareRunner::processClipboardChange()
     }
 
     //Don't trigger 2 times within 50 milliseconds
-    if(clipboardTriggerList.last().elapsed() < 50) {
+    if(!clipboardTriggerList.isEmpty() && clipboardTriggerList.last().elapsed() < 50) {
         return;
     }
 
