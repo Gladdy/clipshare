@@ -11,95 +11,97 @@
 #include <QLineEdit>
 #include <QSizePolicy>
 #include <QStringList>
+#include <QDesktopWidget>
 
 Window::Window(Settings *s, QObject *parent)
-    : QMainWindow(dynamic_cast<QWidget *>(parent)), ui(new Ui::StatusWindow),
-      titleString("ClipShare"), icon(":/icons/clipshare.png"), settings(s) {
+    : QMainWindow(dynamic_cast<QWidget *>(parent)),
+      ui(new Ui::StatusWindow),
+      titleString("ClipShare"),
+      icon(":/icons/clipshare.png"),
+      settings(s)
+{
   ui->setupUi(this);
 
-  setupTrayMenu();
-  fillFields();
-
-  trayIcon->setIcon(icon);
-  trayIcon->setToolTip(titleString);
-  trayIcon->show();
-
-  setWindowTitle(titleString);
-  setWindowIcon(icon);
-  setWindowFlags(Qt::Drawer);
-
-  connect(trayIcon, SIGNAL(activated(QSystemTrayIcon::ActivationReason)), this,
-          SLOT(iconActivated(QSystemTrayIcon::ActivationReason)));
-
-  connect(minimizeAction, SIGNAL(triggered()), this, SLOT(hide()));
-  connect(restoreAction, SIGNAL(triggered()), this, SLOT(showNormal()));
-  connect(quitAction, SIGNAL(triggered()), trayIcon, SLOT(hide()));
-  connect(quitAction, SIGNAL(triggered()), qApp, SLOT(quit()));
-
-  connect(ui->pushButton_register, SIGNAL(pressed()), this,
-          SLOT(processRegister()));
-  connect(ui->pushButton_check, SIGNAL(pressed()), this, SLOT(processCheck()));
-
-  connect(ui->pushButton_ok, SIGNAL(pressed()), this, SLOT(processOK()));
-  connect(ui->pushButton_cancel, SIGNAL(pressed()), this,
-          SLOT(processCancel()));
-  connect(ui->pushButton_apply, SIGNAL(pressed()), this, SLOT(processApply()));
-
-  connect(ui->pushButton_shutdown, SIGNAL(pressed()), quitAction,
-          SLOT(trigger()));
-
-  this->show();
-}
-Window::~Window() { delete ui; }
-
-void Window::setupTrayMenu() {
-  /*
-   *  Create actions for the tray menu
-   */
   minimizeAction = new QAction(tr("Mi&nimize"), this);
   restoreAction = new QAction(tr("&Restore"), this);
   quitAction = new QAction(tr("&Quit"), this);
 
-  /*
-   * Set up the tray icon menu
-   */
+  //Create a tray icon menu
   trayIconMenu = new QMenu(this);
   trayIconMenu->addAction(minimizeAction);
   trayIconMenu->addAction(restoreAction);
   trayIconMenu->addSeparator();
   trayIconMenu->addAction(quitAction);
 
-  /*
-   *  Add the menu to the tray icon
-   */
+  //Add the menu to the tray icon
   trayIcon = new QSystemTrayIcon(this);
   trayIcon->setContextMenu(trayIconMenu);
+
+  //Set up the icon
+  trayIcon->setIcon(icon);
+  trayIcon->setToolTip(titleString);
+  trayIcon->show();
+
+  //Set up the window
+  setWindowTitle(titleString);
+  setWindowIcon(icon);
+  setWindowFlags(Qt::Drawer);
+
+  //Display the window whenever someone uses left or middle mouse on the icon
+  connect(trayIcon, &QSystemTrayIcon::activated, this, &Window::iconActivated);
+
+  connect(minimizeAction, &QAction::triggered, this, &Window::hide);
+  connect(restoreAction, &QAction::triggered, this, &Window::showNormal);
+  connect(quitAction, &QAction::triggered, trayIcon, &QSystemTrayIcon::hide);
+  connect(quitAction, &QAction::triggered, qApp, &QApplication::quit);
+
+  connect(ui->register_pushbutton, &QPushButton::pressed, this, &Window::processRegister);
+  connect(ui->login_pushbutton, &QPushButton::pressed, this, &Window::processLogin);
+
+  connect(ui->pushButton_ok, &QPushButton::pressed, this, &Window::processOK);
+  connect(ui->pushButton_cancel, &QPushButton::pressed, this, &Window::processCancel);
+  connect(ui->pushButton_apply, &QPushButton::pressed, this, &Window::processApply);
+
+  connect(ui->pushButton_shutdown, &QPushButton::pressed, quitAction, &QAction::trigger);
+
+  this->show();
+  adjustSize();
+  move(QApplication::desktop()->screen()->rect().center() - this->rect().center());
 }
+Window::~Window() { delete ui; }
+
 void Window::fillFields() {
-  QString email = settings->getEmail();
-  ui->lineEdit_email->setText(email);
 
-  QString password = settings->getPassword();
-  ui->lineEdit_password->setText(password);
+  //Account page
+  QString email = settings->getSetting("email").toString();
+  ui->email_lineEdit->setText(email);
 
-  if (email.size() && password.size()) {
-    ui->label_register->hide();
-    ui->pushButton_register->hide();
-  }
+  QString password = settings->getSetting("password").toString();
+  ui->password_lineEdit->setText(password);
 
-  int timeperiod = settings->getDoubleCopyPeriod();
-  ui->lineEdit_interval->setText(QString::number(timeperiod));
+  //General page
+  int maxsize = settings->getSetting("maxsize").toInt();
+  ui->maxsize_lineEdit->setText(QString::number(maxsize));
 
-  ui->progressBar_upload->setRange(0, progressResolution);
-  ui->progressBar_upload->setValue(0);
-  ui->progressBar_upload->hide();
+  int triggerperiod = settings->getSetting("triggerperiod").toInt();
+  ui->triggerperiod_lineEdit->setText(QString::number(triggerperiod));
+
+  bool localstorage = settings->getSetting("localstorage").toBool();
+  ui->localstorage_checkbox->setChecked(localstorage);
+
+  bool notifications = settings->getSetting("notifications").toBool();
+  ui->notification_checkbox->setChecked(notifications);
+
+  ui->progressbar->setRange(0, progressResolution);
+  ui->progressbar->setValue(0);
+  ui->progressbar->hide();
 
   adjustSize();
 }
 void Window::processMessage(MessageType type, QString message) {
   switch (type) {
   case URL:
-    ui->lineEdit_downloadLink->setText(message);
+    ui->downloadlink_lineEdit->setText(message);
     showTrayMessage(tr("Download link available!"),
                     QSystemTrayIcon::Information);
     break;
@@ -109,13 +111,13 @@ void Window::processMessage(MessageType type, QString message) {
     long total = values.at(1).toLong();
     int value = ((float)current / (float)total) * progressResolution;
 
-    ui->progressBar_upload->setValue(value);
+    ui->progressbar->setValue(value);
 
     if (current == 0 && total == 0) {
-      ui->progressBar_upload->hide();
-      ui->progressBar_upload->setValue(0);
+      ui->progressbar->hide();
+      ui->progressbar->setValue(0);
     } else {
-      ui->progressBar_upload->show();
+      ui->progressbar->show();
     }
   } break;
 
@@ -136,19 +138,14 @@ void Window::processMessage(MessageType type, QString message) {
   case Error:
     showTrayMessage(message, QSystemTrayIcon::Critical);
     break;
-
-  default:
-    qDebug() << "Unknown notification type in StatusWindow::processNotification"
-             << type << message;
-    break;
   }
 }
 void Window::setLoginFields(bool val) {
-  ui->lineEdit_email->setReadOnly(!val);
-  ui->lineEdit_email->setEnabled(val);
-  ui->lineEdit_password->setReadOnly(!val);
-  ui->lineEdit_password->setEnabled(val);
-  ui->pushButton_check->setEnabled(val);
+  ui->email_lineEdit->setReadOnly(!val);
+  ui->email_lineEdit->setEnabled(val);
+  ui->password_lineEdit->setReadOnly(!val);
+  ui->password_lineEdit->setEnabled(val);
+  ui->login_pushbutton->setEnabled(val);
 }
 
 void Window::iconActivated(QSystemTrayIcon::ActivationReason reason) {
@@ -163,15 +160,11 @@ void Window::iconActivated(QSystemTrayIcon::ActivationReason reason) {
   }
 }
 void Window::processRegister() {
-  QString webLocation = settings->getHostname();
+  QString webLocation = settings->getSetting("hostname").toString();
   QDesktopServices::openUrl(QUrl("https://" + webLocation));
 }
-void Window::processCheck() {
-  if (applyAccount() == false) {
-    showTrayMessage("Invalid credentials");
-  } else {
-    emitCommand(Connect, "CheckCredentials");
-  }
+void Window::processLogin() {
+  emitCommand(Connect, "CheckCredentials");
 }
 
 void Window::processOK() {
@@ -183,51 +176,40 @@ void Window::processCancel() {
   this->hide();
   fillFields();
 }
-bool Window::applyAccount() {
-  bool correct = true;
-  setTextStatus(ui->lineEdit_email, true);
-  setTextStatus(ui->lineEdit_password, true);
-
-  QString email = ui->lineEdit_email->text();
-  if (settings->setEmail(email) == false) {
-    correct = false;
-    ui->lineEdit_email->setText(tr("Invalid email address"));
-    showTrayMessage(tr("Invalid email address"));
-    setTextStatus(ui->lineEdit_email, false);
-  }
-
-  QString password = ui->lineEdit_password->text();
-  if (settings->setPassword(password) == false) {
-    correct = false;
-    ui->lineEdit_password->setText(tr("Invalid password"));
-    showTrayMessage(tr("Invalid password"));
-    setTextStatus(ui->lineEdit_password, false);
-  }
-
-  return correct;
-}
-bool Window::applyGeneral() {
-  bool correct = true;
-  setTextStatus(ui->lineEdit_interval, true);
-
-  QString copyTimePeriod = ui->lineEdit_interval->text();
-  if (settings->setDoubleCopyPeriod(copyTimePeriod) == false) {
-    correct = false;
-    ui->lineEdit_interval->setText(tr("Invalid period"));
-    showTrayMessage(tr("Invalid period"));
-    setTextStatus(ui->lineEdit_interval, false);
-  }
-
-  return correct;
-}
-
 bool Window::processApply() {
-  bool correct = applyAccount() && applyGeneral();
-  if (correct) {
-    settings->saveConfigToDisk();
+
+  bool correct = true;
+  bool check = true;
+
+  //Check and save the maxsize
+  check = true;
+  QString maxsizeStr = ui->maxsize_lineEdit->text();
+  int maxsize = maxsizeStr.toInt(&check);
+  if(!check || maxsize <= 0 || maxsize > settings->getSetting("maxsize_max").toInt()) {
+    setTextStatus(ui->maxsize_lineEdit, false);
+    correct = false;
+  } else {
+    settings->saveSetting("maxsize",maxsize);
   }
+
+  //Check and save the triggerperiod
+  check = true;
+  QString triggerperiodStr = ui->triggerperiod_lineEdit->text();
+  int triggerperiod = triggerperiodStr.toInt(&check);
+  if(!check || maxsize <= 0) {
+    setTextStatus(ui->triggerperiod_lineEdit, false);
+    correct = false;
+  } else {
+    settings->saveSetting("triggerperiod",triggerperiod);
+  }
+
+  //Check and save the checkboxes
+  settings->saveSetting("localstorage",ui->localstorage_checkbox->isChecked());
+  settings->saveSetting("notifications",ui->notification_checkbox->isChecked());
+
   return correct;
 }
+
 void Window::setTextStatus(QLineEdit *lineEdit, bool correct) {
   if (correct) {
     lineEdit->setStyleSheet("color:black");
@@ -235,11 +217,17 @@ void Window::setTextStatus(QLineEdit *lineEdit, bool correct) {
     lineEdit->setStyleSheet("color:red");
   }
 }
-void Window::showTrayMessage(QString msg,
-                                   QSystemTrayIcon::MessageIcon messageIcon) {
-  trayIcon->showMessage(titleString, msg, messageIcon);
 
+void Window::showTrayMessage(QString msg, QSystemTrayIcon::MessageIcon messageIcon) {
+
+  // Don't show anything anymore when a critical error has been raised already
+  if(gotCriticalError) { return; }
+
+  // Register the critical error and
   if(messageIcon == QSystemTrayIcon::Critical) {
-      connect(trayIcon, &QSystemTrayIcon::messageClicked, &QApplication::quit);
+    connect(trayIcon, &QSystemTrayIcon::messageClicked, &QApplication::quit);
+    gotCriticalError = true;
   }
+
+  trayIcon->showMessage(titleString, msg, messageIcon);
 }

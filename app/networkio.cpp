@@ -74,8 +74,8 @@ void NetworkIO::checkCredentials() {
 void NetworkIO::abortUpload() {}
 
 bool NetworkIO::addCredentials(QJsonObject &object) {
-  QString email = settings->getEmail();
-  QString password = settings->getPassword();
+  QString email = settings->getSetting("email").toString();
+  QString password = settings->getSetting("password").toString();
 
   if (email.length() == 0 || password.length() == 0) {
     emitMessage(Error, "Could not find login details");
@@ -154,7 +154,7 @@ void NetworkIO::postRequest(QUrl url, QList<QHttpPart> textData,
 }
 
 QUrl NetworkIO::getUrl(QString target) {
-  QString connectString = settings->getConnectString();
+  QString connectString = settings->getSetting("hostname").toString();
   QString urlString = "https://" + connectString + "/" + target;
 
   qDebug() << urlString;

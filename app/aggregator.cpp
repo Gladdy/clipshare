@@ -10,249 +10,180 @@
 #include <QDirIterator>
 #include <QJsonObject>
 
+#include <QApplication>
+#include <QClipboard>
+
 Aggregator::Aggregator(Settings *s, QObject *parent)
-    : StatusReporter(parent), settings(s) {
+    : StatusReporter(parent),
+      settings(s)
+{
 
   QDir dir(QDir::currentPath());
 
-  if (!dir.exists(storageDir))
-  {
-    qDebug() << "storage directory does not exist yet";
-    dir.mkdir(storageDir);
-    qDebug() << "storage directory created";
+  if (!dir.exists(storageName)) {
+    dir.mkdir(storageName);
   }
-  else
-  {
-    qDebug() << "storage dir already exists";
-  }
+
+  dir.cd(storageName);
+  storageLocation = dir.absolutePath() + "/";
 }
 
-QJsonDocument Aggregator::getRequestFormat(const QMimeData *dataSource) {
+Aggregator::~Aggregator() {
+
+}
+
+QString Aggregator::aggregateClipboard() {
   qDebug() << "Getting formats";
 
-  QJsonObject mimeDataResult;
+  const QMimeData *mimeData = QApplication::clipboard()->mimeData();
 
-  QStringList formats = dataSource->formats();
-
-  for (QString format : formats) {
-    if (!(format.startsWith("application/") || format.startsWith("image/"))) {
-      qDebug() << "Found format: " << format;
-      mimeDataResult.insert(format, QString(dataSource->data(format)));
-    } else {
-      qDebug() << "Found format: " << format << "!! NOT PULLING !!";
-    }
-  }
-
-  /*
- *  The clipboard contains either an image or a file, but not both for this
- * purpose
- */
-  if (dataSource->hasImage()) {
-    QVariant v = dataSource->imageData();
-    QImage image = v.value<QImage>();
-
-    qDebug() << "has image (not yet added to the JSON) : " << image.size();
-    // mimeDataResult.insert("type","image");
-  } else if (dataSource->hasUrls()) {
-    QList<QUrl> urls = dataSource->urls();
+  if(mimeData->hasUrls()) {
+    QList<QUrl> urls = mimeData->urls();
 
     QList<QString> files;
     QList<QString> folders;
 
-    qDebug() << "Files to be added";
+    // Check the validity of the files and folders and add them to the lists
     for (QUrl url : urls) {
       QString localname = url.toLocalFile();
       QDir dir(localname);
       QFile file(localname);
 
-      if (dir.exists()) {
+      if (dir.exists())
+      {
         folders.append(dir.absolutePath());
         qDebug() << "FOLDER: " << dir;
-      } else if (file.exists()) {
+      }
+      else if (file.exists())
+      {
         QFileInfo info(file);
         files.append(info.absoluteFilePath());
         qDebug() << "FILE: " << info.absoluteFilePath();
-      } else {
+      }
+      else
+      {
         qDebug() << "URL not found: " << url;
       }
     }
 
-    if (files.length() || folders.length()) {
-      QString location = processFilesFolders(files, folders);
+    // Process the files and folders and return the possible location
+    return processFilesFolders(files, folders);
 
-      if (location != "") {
-        mimeDataResult.insert("type", "file");
-        mimeDataResult.insert("location", location);
-      } else {
-        emitMessage(Error, tr("Copied files are too large to be sent"));
-        return QJsonDocument();
-      }
-    }
+  } else if(mimeData->hasHtml()) {
+    // Store the html in some file
+    QString html = mimeData->html();
+
+  } else if(mimeData->hasText()) {
+    // Store the text in a file
+
   }
-
-  /*
- *  Additionally, add the textual representation to the JSON structure.
- */
-  if (!mimeDataResult.contains("type")) {
-    mimeDataResult.insert("type", "text");
-  }
-  if (dataSource->hasText()) {
-    mimeDataResult.insert("text/plain", dataSource->text());
-  }
-  if (dataSource->hasHtml()) {
-    mimeDataResult.insert("text/html", dataSource->html());
-  }
-
-  QJsonDocument doc;
-  doc.setObject(mimeDataResult);
-
-  qDebug() << "Finished formatting clipboard as JSON";
-
-  return doc;
 }
-
-QString Aggregator::processImage(QImage img) { return "hai"; }
 
 QString Aggregator::processFilesFolders(QList<QString> files,
                                         QList<QString> folders) {
-  QDir dir(storageLocation);
-  if (!dir.exists()) {
-    dir.mkdir(".");
+  QDir dir(".");
+  if (!dir.exists(storageName)) {
+    dir.mkdir(storageName);
   }
 
-  /*
-   *  Fetch settings and initialize variables
-   */
+  // Initialize variables and fetch settings
   qint64 totalSize = 0;
-  qint64 maxSize = settings->getSizeLimit();
+  qint64 maxsize = settings->getSetting("maxsize").toInt();
   bool overflow = false;
+  QString filename;
 
-  // You need to zip when there are multiple locations selected or you selected
-  // a folder
-  bool needsZipping = (files.length() > 1 || folders.length());
-
-  if (needsZipping) {
+  // Zip when multiple files or a folder
+  if (files.length() > 1 || folders.length())
+  {
     qDebug() << "PREPARE FOR ZIPPING";
 
     // Extract a logical filename from the files and folders
-    // Find the root directory of the selected files
-    QString targetFilename;
-    QString rootLocation;
-
     if (files.length() > 1) {
-      // Get a name from the files
+
       QFileInfo info0(files.at(0));
-      QFileInfo info1(files.at(1));
-      targetFilename = info0.baseName() + "_" + info1.baseName();
+      filename = info0.baseName().append("_etc");
 
-      if (files.length() > 2) {
-        targetFilename.append("_etc");
-      }
-
-      rootLocation = files.at(0);
     } else {
       // Get a name from the folders
       QDir dir(folders.at(0));
-      targetFilename = dir.dirName();
-      rootLocation = folders.at(0);
+      filename = dir.dirName();
     }
 
-    targetFilename.append(".zip");
+    // Check and fix the availability of the filename with extension
+    filename.append(".zip");
+    filename = resolveAvailable(filename);
 
-    QString target = getProperTarget(targetFilename);
+    // Find the root directory of the selected files/folder(s)
+    QDir rootDir = getRootLocation(files,folders);
 
+    // Add the files to the archive
     for (QString file : files) {
-      QString tempRootLocation = "";
-      int i = 0;
-      while (i < file.length() && i < rootLocation.length() &&
-             file.at(i) == rootLocation.at(i)) {
-        tempRootLocation.append(file.at(i));
-        i++;
-      }
-      rootLocation = tempRootLocation;
-    }
-    for (QString folder : folders) {
-      QString tempRootLocation = "";
-      int i = 0;
-      while (i < folder.length() && i < rootLocation.length() &&
-             folder.at(i) == rootLocation.at(i)) {
-        tempRootLocation.append(folder.at(i));
-        i++;
-      }
-      rootLocation = tempRootLocation;
-    }
-
-    // Deal with the case that all selected files start with the same
-    // characters.
-    // If so, you'd end up with '/home/martijn/te' for 'text.txt' and 'test.txt'
-    // instead of /home/martijn
-    int i = rootLocation.length() - 1;
-    while (i > 0) {
-      if (rootLocation.at(i) == '/')
-        break;
-      i--;
-    }
-
-    rootLocation = rootLocation.left(i);
-    QDir rootDir(rootLocation);
-
-    /*
- * Add the files to the archive
- */
-    for (QString file : files) {
-      if (totalSize > maxSize) {
+      if (totalSize > maxsize) {
         overflow = true;
         break;
       }
-      totalSize += appendFile(file, rootDir, target);
-      qDebug() << totalSize << maxSize;
+      totalSize += appendFile(file, rootDir, filename);
+      qDebug() << totalSize << maxsize;
     }
 
-    /*
- * Add the files in the folders recursively to the archive
- */
+    // Add the folders to the archive by adding the files in the folders
     for (QString folder : folders) {
       QDir dir(folder);
       dir.setFilter(QDir::Files);
       QDirIterator it(dir, QDirIterator::Subdirectories);
 
       while (it.hasNext()) {
-        if (totalSize > maxSize) {
+        if (totalSize > maxsize) {
           overflow = true;
           break;
         }
-        totalSize += appendFile(it.next(), rootDir, target);
-        qDebug() << totalSize << maxSize;
+        totalSize += appendFile(it.next(), rootDir, filename);
+        qDebug() << totalSize << maxsize;
       }
     }
+  }
+  else
+  {
+    //Only a single file is selected
+    QString sourceFilename = files.first();
+    QFile sourceFile(sourceFilename);
 
-    if (overflow == false) {
-      return target;
-    }
-  } else {
-    /**
- *  Simply emit the filename for uploading
- *  If there is only a single entry and that is not a folder
- */
-    QString fileLocation = files.first();
-    QFileInfo info(fileLocation);
-    QString target = getProperTarget(info.fileName());
-    QFile::copy(fileLocation, target);
-    QFile targetFile(target);
-
-    if (targetFile.exists()) {
-      if (targetFile.size() <= maxSize) {
-        qDebug() << "Copied to : " + target;
-        return target;
-      } else {
-        qDebug() << "File too large";
-      }
-    } else {
+    if(!sourceFile.exists())
+    {
+      //What is even going on
+      emitMessage(Notification, tr("File does not exist: ") + sourceFilename);
       return "";
+    }
+    else if(sourceFile.size() > maxsize)
+    {
+      //Too large, too bad
+      overflow = true;
+    }
+    else
+    {
+      qDebug() << "going to copy";
+
+      //Yes, correct filename and copy
+      QFileInfo info(sourceFile);
+      filename = resolveAvailable(info.fileName());
+
+      QFile::copy(sourceFilename, filename);
     }
   }
 
-  return "";
+  // Handle a possible overflow
+  if (overflow == true) {
+    emitMessage(Notification, tr("Unable to process file due to size") + ", max " + maxsize/1000 + "KB");
+
+    //Attempt to remove the file again
+    QFile file (filename);
+    if(file.exists()) {
+      file.remove();
+    }
+    return "";
+  }
+
+  return filename;
 }
 
 int Aggregator::appendFile(QString sourceFileLocation, QDir rootDir,
@@ -294,14 +225,27 @@ int Aggregator::appendFile(QString sourceFileLocation, QDir rootDir,
   return size;
 }
 
-QString Aggregator::getProperTarget(QString wantedFileName) {
-  QString target = storageLocation + wantedFileName;
+/*
+ * Input:   a bare filename which gets requested to be used, eg. main.cpp
+ * Output:  the fully formed path to the storage directory with a guaranteed, nonexisting filename
+ */
+QString Aggregator::resolveAvailable(QString filenameWithExtension) {
+
+
+  //int periodPosition = filenameWithExtension.indexOf('.');
+  QString name = filenameWithExtension.section('.', 0, 0);
+  QString extension = filenameWithExtension.section('.', 1);
+
+
+  QString target = storageLocation + name + "." + extension;
+  qDebug() << target;
   QFile *targetFile = new QFile(target);
   int i = 2;
 
   // Make sure that we have an unique target file name
   while (targetFile->exists()) {
-    target = storageLocation + QString::number(i) + "-" + wantedFileName;
+    target = storageLocation + name + "-" + QString::number(i) + "." + extension;
+    qDebug() << target;
     delete targetFile;
     targetFile = new QFile(target);
     i++;
@@ -309,4 +253,39 @@ QString Aggregator::getProperTarget(QString wantedFileName) {
   delete targetFile;
 
   return target;
+}
+
+QDir Aggregator::getRootLocation(QList<QString> files, QList<QString> folders) {
+
+  // First guess for the rootlocation
+  QString rootLocation = files.length() ? files[0] : folders[0];
+
+  // Perform a longest prefix search over both lists.
+  // Simply consider every single string and
+
+  // Put all
+  QList<QString> aggregatelist;
+  aggregatelist.append(files);
+  aggregatelist.append(folders);
+
+  for (QString location : aggregatelist) {
+    QString tempRootLocation = "";
+    int i = 0;
+    while (i < location.length() && i < rootLocation.length() && location.at(i) == rootLocation.at(i)) {
+      tempRootLocation.append(location.at(i));
+      i++;
+    }
+    rootLocation = tempRootLocation;
+  }
+
+  // Make sure that you end up with a folder location
+  // Ending in '/'
+  int i = rootLocation.length() - 1;
+  while (i > 0) {
+    if (rootLocation.at(i) == '/')
+      break;
+    i--;
+  }
+
+  return QDir(rootLocation.left(i));
 }

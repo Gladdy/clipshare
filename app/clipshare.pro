@@ -5,7 +5,7 @@
 #-------------------------------------------------
 
 CONFIG	 += c++11
-QT       += widgets network gui
+QT       += widgets network gui sql
 
 RESOURCES     = clipshare.qrc
 
@@ -28,7 +28,7 @@ HEADERS  += \
     window.h \
     status.h
 
-LIBS += -L/usr/local/lib -lsqlite3
+#LIBS += -L/usr/local/lib -lsqlite3
 
 FORMS += statuswindow.ui
 

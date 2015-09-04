@@ -2,7 +2,6 @@
 #define CLIPSHARERUNNER_H
 
 #include "status.h"
-//#include "settings.h"
 
 #include <QObject>
 #include <QMimeData>
@@ -41,7 +40,7 @@ public slots:
   void processMessage(MessageType, QString message);
 
 private:
-  bool loggedIn = false;
+  // bool loggedIn = false;
   void setClipboardText(QString url);
   bool ignoreClipboardChange = false;
 

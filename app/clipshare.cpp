@@ -10,6 +10,7 @@
 #include <QJsonValue>
 #include <QJsonObject>
 #include <QDebug>
+#include <QFile>
 
 Clipshare::Clipshare(QObject *parent) : QObject(parent) {
 
@@ -17,8 +18,6 @@ Clipshare::Clipshare(QObject *parent) : QObject(parent) {
   aggregator = new Aggregator(settings, this);
   network = new NetworkIO(settings, this);
   window = new Window(settings, this);
-
-  qDebug() << "Initialized members";
 
   // Clipboard change
   connect(QApplication::clipboard(), &QClipboard::dataChanged, this, &Clipshare::processClipboardChange);
@@ -33,12 +32,9 @@ Clipshare::Clipshare(QObject *parent) : QObject(parent) {
   connect(this, &Clipshare::emitMessage, window, &Window::processMessage);
   connect(window, &Window::emitCommand, this, &Clipshare::processCommand);
 
-  qDebug() << "Created connections";
-
   settings->load();
+  window->fillFields();
   network->checkCredentials();
-
-  qDebug() << "Set up main object";
 }
 void Clipshare::processClipboardChange() {
   qDebug() << "Clipboard changed!";
@@ -56,15 +52,18 @@ void Clipshare::processClipboardChange() {
 
   // Filter out the events outside the DoubleCopyPeriod
   clipboardTriggerList.push_back(QTime::currentTime());
-  int period = settings->getDoubleCopyPeriod();
+  int period = settings->getSetting("triggerperiod").toInt();
+
   while (clipboardTriggerList.front().elapsed() > period) {
     clipboardTriggerList.removeFirst();
   }
 
   if (clipboardTriggerList.length() >= 2) {
-    const QMimeData *mimeData = QApplication::clipboard()->mimeData();
-    QJsonDocument request = aggregator->getRequestFormat(mimeData);
-    emitNetworkRequest(request);
+
+    QString location = aggregator->aggregateClipboard();
+
+
+    //emitNetworkRequest(request);
   }
 }
 
@@ -74,10 +73,8 @@ void Clipshare::processNetworkResponse(QJsonDocument doc) {
   if (response.contains("loggedin")) {
     if (response["loggedin"].toBool() == true) {
       emitMessage(Login, "Correct");
-      loggedIn = true;
     } else {
       emitMessage(Login, "Incorrect");
-      loggedIn = false;
     }
   }
 
