@@ -1,7 +1,7 @@
 #ifndef STATUSWINDOW_H
 #define STATUSWINDOW_H
 
-#include "messagetype.h"
+#include "status.h"
 
 #include <QMainWindow>
 #include <QSystemTrayIcon>
@@ -13,15 +13,15 @@ namespace Ui {
 class StatusWindow;
 }
 
-class ApplicationSettings;
+class Settings;
 
-class StatusWindow : public QMainWindow
+class Window : public QMainWindow
 {
     Q_OBJECT
 
 public:
-    explicit StatusWindow(ApplicationSettings * s, QWidget *parent = 0);
-    ~StatusWindow();
+    Window(Settings * s, QObject *parent = 0);
+    ~Window();
 
 public slots:
     /** The main slot for the status window
@@ -118,7 +118,7 @@ private:
 
     QString titleString;
     const QIcon icon;
-    ApplicationSettings * settings;
+    Settings * settings;
 
     const int progressResolution = 1024;
 };

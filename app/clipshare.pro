@@ -9,26 +9,26 @@ QT       += widgets network gui
 
 RESOURCES     = clipshare.qrc
 
-TARGET	 = ClipShare
+TARGET	 = clipshare
 
-SOURCES  += main.cpp clipsharerunner.cpp statuswindow.cpp \
-    applicationsettings.cpp \
-    clipboardjsonformatter.cpp \
-    networkmanager.cpp
+SOURCES  += main.cpp \
+    clipshare.cpp \
+    networkio.cpp \
+    aggregator.cpp \
+    settings.cpp \
+    window.cpp \
+    status.cpp
 
-HEADERS  += clipsharerunner.h statuswindow.h \
-    applicationsettings.h \
-    clipboardjsonformatter.h \
-    networkmanager.h \
+HEADERS  += \
     miniz.c \
-    messagetype.h
+    clipshare.h \
+    settings.h \
+    aggregator.h \
+    networkio.h \
+    window.h \
+    status.h
 
-DISTFILES += ../config.cfg
-# QMAKE_LFLAGS += -static-libgcc -static-libstdc++
-
-for(FILE, $$DISTFILES) {
-    QMAKE_POST_LINK += $(COPY_DIR) $$PWD/FILE $$OUT_PWD
-}
+LIBS += -L/usr/local/lib -lsqlite3
 
 FORMS += statuswindow.ui
 
