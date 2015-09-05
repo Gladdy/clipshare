@@ -33,11 +33,14 @@ Aggregator::~Aggregator() {
 }
 
 QString Aggregator::aggregateClipboard() {
-  qDebug() << "Getting formats";
 
   const QMimeData *mimeData = QApplication::clipboard()->mimeData();
 
-  if(mimeData->hasUrls()) {
+  if(mimeData->hasUrls())
+  {
+    qDebug() << "Detected file(s)";
+
+    // Files were copied
     QList<QUrl> urls = mimeData->urls();
 
     QList<QString> files;
@@ -68,15 +71,34 @@ QString Aggregator::aggregateClipboard() {
 
     // Process the files and folders and return the possible location
     return processFilesFolders(files, folders);
-
-  } else if(mimeData->hasHtml()) {
-    // Store the html in some file
-    QString html = mimeData->html();
-
-  } else if(mimeData->hasText()) {
-    // Store the text in a file
-
   }
+  else
+  {
+    qDebug() << "Detected text or html snippet";
+
+    // Text or an html snippet
+    QString content;
+    QString filename;
+
+    if(mimeData->hasHtml()) {
+      content = mimeData->html();
+      filename = resolveAvailable("html-snippet.html");
+    }
+    else if(mimeData->hasText())
+    {
+      content = mimeData->text();
+      filename = resolveAvailable("text-snippet.txt");
+    }
+
+
+    QFile file (filename);
+    if(file.open(QIODevice::ReadWrite)) {
+      file.write(content.toStdString().c_str(), content.length());
+      file.close();
+      return filename;
+    }
+  }
+  return "";
 }
 
 QString Aggregator::processFilesFolders(QList<QString> files,
@@ -173,7 +195,8 @@ QString Aggregator::processFilesFolders(QList<QString> files,
 
   // Handle a possible overflow
   if (overflow == true) {
-    emitMessage(Notification, tr("Unable to process file due to size") + ", max " + maxsize/1000 + "KB");
+    emitMessage(Notification, tr("Unable to process file due to size") +
+                ", max " + QString::number(maxsize/1000) + "KB");
 
     //Attempt to remove the file again
     QFile file (filename);
@@ -238,14 +261,12 @@ QString Aggregator::resolveAvailable(QString filenameWithExtension) {
 
 
   QString target = storageLocation + name + "." + extension;
-  qDebug() << target;
   QFile *targetFile = new QFile(target);
   int i = 2;
 
   // Make sure that we have an unique target file name
   while (targetFile->exists()) {
     target = storageLocation + name + "-" + QString::number(i) + "." + extension;
-    qDebug() << target;
     delete targetFile;
     targetFile = new QFile(target);
     i++;

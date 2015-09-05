@@ -30,10 +30,7 @@ private:
   int appendFile(QString sourceFileLocation, QDir rootDir,
                  QString targetArchiveLocation);
 
-  /**
-   * @brief getProperTarget
-   *
-   */
+
   QString resolveAvailable(QString wantedFileName);
   QDir getRootLocation(QList<QString> files, QList<QString> folders);
 

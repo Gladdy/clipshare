@@ -35,6 +35,7 @@ public slots:
 
 private slots:
     void iconActivated(QSystemTrayIcon::ActivationReason);
+    void forceRestore();
 
     void processRegister();
     void processLogin();
@@ -58,8 +59,9 @@ private:
     bool gotCriticalError = false;
 
     QAction *minimizeAction;
-    QAction *restoreAction;
+    QAction *settingsAction;
     QAction *quitAction;
+    QAction *helpAction;
 
     QSystemTrayIcon *trayIcon;
     QMenu *trayIconMenu;

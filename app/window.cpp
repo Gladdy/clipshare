@@ -16,20 +16,23 @@
 Window::Window(Settings *s, QObject *parent)
     : QMainWindow(dynamic_cast<QWidget *>(parent)),
       ui(new Ui::StatusWindow),
-      titleString("ClipShare"),
+      titleString("Clipshare"),
       icon(":/icons/clipshare.png"),
       settings(s)
 {
   ui->setupUi(this);
 
   minimizeAction = new QAction(tr("Mi&nimize"), this);
-  restoreAction = new QAction(tr("&Restore"), this);
-  quitAction = new QAction(tr("&Quit"), this);
+  helpAction = new QAction(tr("&Help"), this);
+  settingsAction = new QAction(tr("&Settings"), this);
+  quitAction = new QAction(tr("&Quit Clipshare"), this);
 
   //Create a tray icon menu
   trayIconMenu = new QMenu(this);
   trayIconMenu->addAction(minimizeAction);
-  trayIconMenu->addAction(restoreAction);
+  trayIconMenu->addSeparator();
+  trayIconMenu->addAction(helpAction);
+  trayIconMenu->addAction(settingsAction);
   trayIconMenu->addSeparator();
   trayIconMenu->addAction(quitAction);
 
@@ -43,15 +46,15 @@ Window::Window(Settings *s, QObject *parent)
   trayIcon->show();
 
   //Set up the window
-  setWindowTitle(titleString);
-  setWindowIcon(icon);
-  setWindowFlags(Qt::Drawer);
+  this->setWindowTitle(titleString);
+  this->setWindowIcon(icon);
+  this->setWindowFlags(Qt::Drawer);
 
   //Display the window whenever someone uses left or middle mouse on the icon
   connect(trayIcon, &QSystemTrayIcon::activated, this, &Window::iconActivated);
 
   connect(minimizeAction, &QAction::triggered, this, &Window::hide);
-  connect(restoreAction, &QAction::triggered, this, &Window::showNormal);
+  connect(settingsAction, &QAction::triggered, this, &Window::forceRestore);
   connect(quitAction, &QAction::triggered, trayIcon, &QSystemTrayIcon::hide);
   connect(quitAction, &QAction::triggered, qApp, &QApplication::quit);
 
@@ -65,10 +68,16 @@ Window::Window(Settings *s, QObject *parent)
   connect(ui->pushButton_shutdown, &QPushButton::pressed, quitAction, &QAction::trigger);
 
   this->show();
-  adjustSize();
+  this->adjustSize();
   move(QApplication::desktop()->screen()->rect().center() - this->rect().center());
 }
 Window::~Window() { delete ui; }
+
+void Window::forceRestore() {
+  this->show();
+  this->activateWindow();
+  this->raise();
+}
 
 void Window::fillFields() {
 
@@ -151,9 +160,13 @@ void Window::setLoginFields(bool val) {
 void Window::iconActivated(QSystemTrayIcon::ActivationReason reason) {
   switch (reason) {
   case QSystemTrayIcon::Trigger:
-  // fall through
+    //Simple click
+    break;
   case QSystemTrayIcon::DoubleClick:
-    this->showNormal();
+    this->forceRestore();
+    break;
+  case QSystemTrayIcon::MiddleClick:
+    this->forceRestore();
     break;
   default:
     break;

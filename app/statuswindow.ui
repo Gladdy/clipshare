@@ -63,7 +63,7 @@
        <enum>QTabWidget::Rounded</enum>
       </property>
       <property name="currentIndex">
-       <number>0</number>
+       <number>1</number>
       </property>
       <property name="elideMode">
        <enum>Qt::ElideLeft</enum>
@@ -224,7 +224,11 @@
            </widget>
           </item>
           <item>
-           <widget class="QLineEdit" name="downloadlink_lineEdit"/>
+           <widget class="QLineEdit" name="downloadlink_lineEdit">
+            <property name="readOnly">
+             <bool>true</bool>
+            </property>
+           </widget>
           </item>
           <item>
            <layout class="QHBoxLayout" name="footer_ok">
