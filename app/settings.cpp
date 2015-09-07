@@ -8,12 +8,10 @@
 Settings::Settings(QObject * parent) : StatusReporter(parent) {
   db = QSqlDatabase::addDatabase("QSQLITE");
   db.setDatabaseName("settings.db");
-
-  //qDebug() << db.drivers();
-  //qDebug() << QApplication::libraryPaths();
 }
 
 Settings::~Settings() {
+  saveToDisk();
   db.close();
 }
 
@@ -34,31 +32,23 @@ void Settings::load() {
                 "value TEXT"
                 ");");
 
-    //Populate the settings table
-    for(auto& keyvalue : defaultSettings) {
-      QSqlQuery insertDefault;
-      insertDefault.prepare("INSERT INTO settings (key,value) VALUES (:key, :value);");
-      insertDefault.bindValue(":key", keyvalue.first);
-      insertDefault.bindValue(":value",keyvalue.second);
-      insertDefault.exec();
-    }
+    //Populate the settings table with initial values
+    saveToDisk(true);
+  }
+  else
+  {
+    //Load the values from the database into the map
+    loadFromDisk();
   }
 }
 
 QVariant Settings::getSetting(QString key) {
 
-  QSqlQuery checkSetting;
-  checkSetting.prepare("SELECT * FROM settings WHERE key=:key");
-  checkSetting.bindValue(":key", key);
-  checkSetting.exec();
+  auto it = settings.find(key);
 
-  if(checkSetting.next())
+  if(it != settings.end())
   {
-    QVariant key = checkSetting.value(0);
-    QVariant value = checkSetting.value(1);
-    qDebug() << key.toString() << '\t' << value.toString();
-
-    return value;
+    return it->second;
   }
   else
   {
@@ -68,10 +58,40 @@ QVariant Settings::getSetting(QString key) {
 }
 
 void Settings::saveSetting(QString key, QVariant value) {
-  QSqlQuery updateSetting;
-  updateSetting.prepare("UPDATE settings SET value=:value WHERE key=:key;");
-  updateSetting.bindValue(":key", key);
-  updateSetting.bindValue(":value",value);
-  updateSetting.exec();
+
+  qDebug() << "saved " << key << " as " << value;
+  settings[key] = value;
+
+  //No need to save all data on every update
+  //saveToDisk();
+}
+
+void Settings::saveToDisk(bool insert) {
+  qDebug() << "SAVING";
+  for(auto& keyvalue : settings) {
+
+    QSqlQuery saveQuery;
+
+    if(insert) {
+      saveQuery.prepare("INSERT INTO settings (key,value) VALUES (:key, :value);");
+    } else {
+      saveQuery.prepare("UPDATE settings SET value=:value WHERE key=:key;");
+    }
+
+    saveQuery.bindValue(":key", keyvalue.first);
+    saveQuery.bindValue(":value",keyvalue.second);
+    saveQuery.exec();
+  }
+}
+
+void Settings::loadFromDisk() {
+  QSqlQuery loadValues;
+  loadValues.exec("SELECT key,value FROM settings;");
+
+  while(loadValues.next()) {
+    QString key = loadValues.value(0).toString();
+    QVariant value = loadValues.value(1);
+    settings[key] = value;
+  }
 }
 

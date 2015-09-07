@@ -19,7 +19,7 @@ int main(int argc, char **argv) {
     return 1;
   }
 
-  Clipshare *runner = new Clipshare();
+  Clipshare application;
 
   return app.exec();
 }

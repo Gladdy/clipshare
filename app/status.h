@@ -11,7 +11,7 @@ class StatusReporter : public QObject {
 
 public:
   StatusReporter(QObject *parent = 0);
-
+  virtual ~StatusReporter() {}
 signals:
   void emitMessage(MessageType, QString message);
 };

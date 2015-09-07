@@ -21,6 +21,7 @@ class Clipshare : public QObject {
   Q_OBJECT
 public:
   Clipshare(QObject *parent = 0);
+  ~Clipshare();
 
 signals:
   void emitNetworkRequest(QJsonDocument);

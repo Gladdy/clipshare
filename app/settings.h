@@ -23,8 +23,11 @@ public:
 private:
   QSqlDatabase db;
 
+  void saveToDisk(bool insert = false);
+  void loadFromDisk();
+
   const char *dbfile = "settings.db";
-  const std::map<QString, QVariant> defaultSettings {
+  std::map<QString, QVariant> settings {
         { "email", ""},
         { "password", ""},
         { "hostname", "prostendo.com"},

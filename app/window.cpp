@@ -58,14 +58,14 @@ Window::Window(Settings *s, QObject *parent)
   connect(quitAction, &QAction::triggered, trayIcon, &QSystemTrayIcon::hide);
   connect(quitAction, &QAction::triggered, qApp, &QApplication::quit);
 
-  connect(ui->register_pushbutton, &QPushButton::pressed, this, &Window::processRegister);
-  connect(ui->login_pushbutton, &QPushButton::pressed, this, &Window::processLogin);
+  connect(ui->register_pushbutton, &QPushButton::clicked, this, &Window::processRegister);
+  connect(ui->login_pushbutton, &QPushButton::clicked, this, &Window::processLogin);
 
-  connect(ui->pushButton_ok, &QPushButton::pressed, this, &Window::processOK);
-  connect(ui->pushButton_cancel, &QPushButton::pressed, this, &Window::processCancel);
-  connect(ui->pushButton_apply, &QPushButton::pressed, this, &Window::processApply);
+  connect(ui->pushButton_ok, &QPushButton::clicked, this, &Window::processOK);
+  connect(ui->pushButton_cancel, &QPushButton::clicked, this, &Window::processCancel);
+  connect(ui->pushButton_apply, &QPushButton::clicked, this, &Window::processApply);
 
-  connect(ui->pushButton_shutdown, &QPushButton::pressed, quitAction, &QAction::trigger);
+  connect(ui->pushButton_shutdown, &QPushButton::clicked, quitAction, &QAction::trigger);
 
   this->show();
   this->adjustSize();

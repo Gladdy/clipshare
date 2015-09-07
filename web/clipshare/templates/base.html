@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Clipshare</title>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/css/bootstrap.min.css">
+</head>
+<body>
+
+<div class="container"  style="max-width: 960px">
+    <div class="row">
+        <div class="col-md-4">
+            <h1> Clipshare </h1>
+            <p> The fastest way of sharing a file. </p>
+
+            <h3>How does it work?</h3>
+
+            <h3>Downloads</h3>
+            <a href="/" class="btn btn-default btn-primary btn-lg">Linux</a>
+            <a href="/" class="btn btn-default btn-primary btn-lg">Mac</a>
+            <a href="/" class="btn btn-default btn-primary btn-lg">Windows</a>
+
+        </div>
+        <div class="col-md-8">
+
+            {% block content %} {% endblock %}
+
+        </div>
+    </div>
+    <footer class="row">
+        <p style="text-align:center;">
+            &copy; Martijn Bakker 2015
+        </P>
+    </footer>
+</div>
+</body>
+</html>

@@ -12,6 +12,10 @@
 #include <QDebug>
 #include <QFile>
 
+#include <iostream>
+
+Clipshare::~Clipshare() {}
+
 Clipshare::Clipshare(QObject *parent) : QObject(parent) {
 
   settings = new Settings(this);
