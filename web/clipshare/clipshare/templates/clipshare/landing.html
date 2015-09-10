@@ -1,46 +1,202 @@
 {% extends 'base.html' %}
 {% block content %}
 
-    <div style="height:200px;">
-        <h3>Infographic here</h3>
+    <div class="w-section section">
+        <div class="w-container">
+            <div class="w-row">
+
+                <h2>Register form</h2>
+                <form action="{% url 'register' %}" method="POST">
+                    <table>
+                        {% csrf_token %}
+                        {{ registrationform }}
+                        <tr>
+                            <td></td>
+                            <td><input type="submit" value="Submit"></td>
+                        </tr>
+                    </table>
+                </form>
+                <h2>Login form</h2>
+                <form action="{% url 'login' %}" method="POST">
+                    <table>
+                        {% csrf_token %}
+                        {{ authenticationform }}
+                        <tr>
+                            <td></td>
+                            <td><input type="submit" value="Submit"></td>
+                        </tr>
+                    </table>
+                </form>
+
+            </div>
+        </div>
     </div>
 
-
-    <form method="POST" action="{% url 'register' %}" class="form-horizontal">
-        {% csrf_token %}
-
-        {% if error %}
-            <div class="form-group">
-                <div class="alert alert-danger col-xs-offset-3 col-xs-6">
-                    <p>{{ error }}</p></div>
-            </div>
-        {% endif %}
-
-        <div class="form-group">
-            <label for="id_email" class="control-label col-xs-3">Email</label>
-            <div class="col-xs-6">
-                <input type="email" class="form-control" id="id_email" name="email" required>
+<div class="section hero">
+    <div class="w-container">
+        <h1 class="hero-heading">Create beautiful online photo albums.</h1>
+        <p class="hero-subhead">Show off your photos in the best light. &nbsp;Just upload, pick your style and we’ll
+            do the rest.
+        </p>
+        <div class="button-group"><a class="button sign-up" href="#">Sign up for free</a><a
+            class="button w--current" href="#features">see features</a></div>
+        <img src="http://uploads.webflow.com/530e2aa37d58f31d3100015e/520eb7479147b7fd53000001_2-big-screen.png"
+            width="940">
+    </div>
+</div>
+<div class="section" id="mobile">
+    <div class="w-container">
+        <h2 class="section-title">Your albums will be beautiful everywhere.</h2>
+        <p class="section-subtitle">Send it to your best friends and your grandma. It’ll work on their computers and
+            phones.
+        </p>
+        <div class="w-row">
+            <div class="w-col w-col-6 center"><img
+                src="http://uploads.webflow.com/530e2aa37d58f31d3100015e/ff394bd2-a988-45b3-8d76-5981bb94edb3_3-responsive-color.png"
+                width="452px"></div>
+            <div class="w-col w-col-6 content-column">
+                <img class="grey-icon"
+                    src="http://uploads.webflow.com/530e2aa37d58f31d3100015e/5d50ecc4-95c5-4069-b5a6-e15d4014e630_4-icon-chrome.png"
+                    width="37px"><img class="grey-icon"
+                    src="http://uploads.webflow.com/530e2aa37d58f31d3100015e/3e0be60f-fc82-4d60-96a1-0b833167e846_4-icon-fire.png"
+                    width="37px"><img class="grey-icon"
+                    src="http://uploads.webflow.com/530e2aa37d58f31d3100015e/8fd57219-c532-4565-b4bc-c316b3fc84d1_4-icon-ie.png"
+                    width="37px"><img
+                    class="grey-icon"
+                    src="http://uploads.webflow.com/530e2aa37d58f31d3100015e/09cd2cce-353b-4b3b-8fdd-95687951a9a0_4-icon-safari.png"
+                    width="37px">
+                <h3>Broad browser support, baby.</h3>
+                <p>All major browsers are supported including Internet Explorer. Send it to your best friends and
+                    your grandma. It’ll work on their computers and phones. Send it to your best friends and your
+                    grandma. It’ll work on their computers and phones.
+                </p>
+                <img class="grey-icon"
+                    src="http://uploads.webflow.com/530e2aa37d58f31d3100015e/32f588ed-17db-4f75-b15a-2e4336bd4579_5-icon-apple.png"
+                    width="37px"><img class="grey-icon"
+                    src="http://uploads.webflow.com/530e2aa37d58f31d3100015e/7e1c9c49-6033-4c65-8784-43ec4427695f_6-icon-android.png"
+                    width="37px"><img
+                    class="grey-icon"
+                    src="http://uploads.webflow.com/530e2aa37d58f31d3100015e/097c71d3-588f-4280-8d3d-a20b22c191c2_7-icon-microsoft.png"
+                    width="37px">
+                <h3>It’s gonna look good on all devices.</h3>
+                <p>Send it to your best friends and your grandma. It’ll work on their computers and phones. Send it
+                    to your best friends and your grandma. It’ll work on their computers and phones.
+                </p>
             </div>
         </div>
-
-        <div class="form-group">
-            <label for="id_password1" class="control-label col-xs-3">Password</label>
-            <div class="col-xs-6">
-                <input type="password" class="form-control" id="id_password1" name="password1" required>
+    </div>
+</div>
+<div class="section grey" id="features">
+    <div class="w-container">
+        <h2 class="section-title">Your albums will be beautiful everywhere.</h2>
+        <p class="section-subtitle">Send it to your best friends and your grandma. It’ll work on their computers and
+            phones.
+        </p>
+        <div class="w-row">
+            <div class="w-col w-col-4">
+                <div class="circle">
+                    <div class="number">1</div>
+                    <img class="frames"
+                        src="http://uploads.webflow.com/530e2aa37d58f31d3100015e/e862862b-71c2-4c31-b42d-fa06454208fc_8-layout1.png"
+                        width="243px">
+                </div>
+                <h3>Simple</h3>
+                <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Suspendisse varius enim in eros
+                    elementum tristique.
+                </p>
+            </div>
+            <div class="w-col w-col-4">
+                <div class="circle">
+                    <div class="number">2</div>
+                    <img class="frames"
+                        src="http://uploads.webflow.com/530e2aa37d58f31d3100015e/cfb9c962-e1a7-4beb-b83e-2a04600354d3_8-layout2.png"
+                        width="243px">
+                </div>
+                <h3>Stacked</h3>
+                <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Suspendisse varius enim in eros
+                    elementum tristique. Duis cursus, mi quis viverra ornare, eros dolor interdum nulla.
+                </p>
+            </div>
+            <div class="w-col w-col-4">
+                <div class="circle">
+                    <div class="number">3</div>
+                    <img class="frames"
+                        src="http://uploads.webflow.com/530e2aa37d58f31d3100015e/765f203d-23b2-42de-9fb9-b6d11a3826d0_8-layout3.png"
+                        width="243px">
+                </div>
+                <h3>Tetris</h3>
+                <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Suspendisse varius enim in eros
+                    elementum tristique. Duis cursus, mi quis viverra ornare, eros dolor.
+                </p>
             </div>
         </div>
-
-        <div class="form-group">
-            <label for="id_password2" class="control-label col-xs-3">Repeat password</label>
-            <div class="col-xs-6">
-                <input type="password" class="form-control" id="id_password2" name="password2" required>
+    </div>
+</div>
+<div class="section centered">
+    <div class="w-container">
+        <h2 class="section-title">Here’s some more things you’ll love.</h2>
+        <p class="section-subtitle">Send it to your best friends and your grandma. It’ll work on their computers and
+            phones.
+        </p>
+        <div class="w-row">
+            <div class="w-col w-col-4 w-col-small-4">
+                <div class="icons"><img
+                    src="http://uploads.webflow.com/530e2aa37d58f31d3100015e/60e99974-e829-4dc1-accd-daf1e7fdf1c1_9-icon2-brush.png"
+                    width="25"></div>
+                <h3>Brush</h3>
+                <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Suspendisse varius enim in eros
+                    elementum tristique. .
+                </p>
+            </div>
+            <div class="w-col w-col-4 w-col-small-4">
+                <div class="icons"><img
+                    src="http://uploads.webflow.com/530e2aa37d58f31d3100015e/3ac4f3ae-7b57-4c26-930b-fbaed24601b3_9-icon2-chat.png"
+                    width="25"></div>
+                <h3>Chat</h3>
+                <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Suspendisse varius enim in eros
+                    elementum tristique. Duis cursus, mi quis viverra ornare, eros dolor
+                </p>
+            </div>
+            <div class="w-col w-col-4 w-col-small-4">
+                <div class="icons"><img
+                    src="http://uploads.webflow.com/530e2aa37d58f31d3100015e/5b9ab216-8502-4c2a-9d0d-13f712a8d7c9_9-icon2-drops.png"
+                    width="25"></div>
+                <h3>Styles</h3>
+                <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Suspendisse varius enim in eros
+                    elementum tristique.
+                </p>
             </div>
         </div>
-
-        <div class="form-group">
-            <div class="col-xs-offset-3 col-xs-6">
-                <button type="submit" class="btn btn-primary">Register</button>
+        <div class="w-row">
+            <div class="w-col w-col-4 w-col-small-4">
+                <div class="icons"><img
+                    src="http://uploads.webflow.com/530e2aa37d58f31d3100015e/a42359b6-c5c1-4aab-914c-968266ab740e_9-icon2-eye.png"
+                    width="25"></div>
+                <h3>See</h3>
+                <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Suspendisse varius enim in eros
+                    elementum tristique. Duis cursus, mi quis viverra ornare, eros dolor
+                </p>
+            </div>
+            <div class="w-col w-col-4 w-col-small-4">
+                <div class="icons"><img
+                    src="http://uploads.webflow.com/530e2aa37d58f31d3100015e/da9ffb16-4e62-4c4e-aa8e-33932f9ccf71_9-icon2-phone.png"
+                    width="25"></div>
+                <h3>Responsive</h3>
+                <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Suspendisse varius enim in eros
+                    elementum tristique. Duis cursus, mi quis viverra ornare, eros dolor
+                </p>
+            </div>
+            <div class="w-col w-col-4 w-col-small-4">
+                <div class="icons"><img
+                    src="http://uploads.webflow.com/530e2aa37d58f31d3100015e/0a33fa10-b61c-421d-92ee-2e926c2fc717_9-icon2-video.png"
+                    width="25"></div>
+                <h3>Videos</h3>
+                <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Suspendisse varius enim in eros
+                    elementum tristique.
+                </p>
             </div>
         </div>
-    </form>
+    </div>
+</div>
+
 {% endblock %}

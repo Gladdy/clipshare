@@ -1,5 +1,12 @@
 </html>{% extends 'base.html' %}
 {% block content %}
-    <h3> Index </h3>
+    <h3> Index : you appear to be logged in </h3>
+
+    {% if user.is_authenticated %}
+        <h1>YEST LOGGED IN!</h1>
+    {% endif %}
+
     <p> This lists all your files etc </p>
+
+    <a href="{% url 'logout' %}" class="btn btn-default btn-primary">Logout</a>
 {% endblock %}
