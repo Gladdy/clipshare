@@ -1,18 +1,28 @@
 <header class="w-section nav-bar">
     <div class="w-container">
         <div class="w-row">
-            <div class="w-col w-col-4 brand-column">
+            <a class="w-col w-col-4 brand-column" href="/" style="display:inline-block;">
                 <div class="company">Clipshare</div>
                 <div class="subtitle">The fastest way to share a file.</div>
-            </div>
+            </a>
             <nav class="w-col w-col-8 nav-column">
                 <div class="w-form formwrapper">
-                    <form class="loginform" id="wf-form-login_form" name="wf-form-login_form" data-name="login_form" action="{% url 'login' %}" method="POST">
-                        {% csrf_token %}
-                        <input class="w-input formtextfield" id="email" type="email" placeholder="Email" name="email" required="required" autofocus="autofocus">
-                        <input class="w-input formtextfield" id="password" type="password" placeholder="Password" name="password" required="required">
-                        <input class="w-button formsubmitbutton" type="submit" value="Sign in">
-                    </form>
+                    {% if user.is_authenticated %}
+                        <a href="{% url 'logout' %}" class="w-button formsubmitbutton">Sign out</a>
+                    {% else %}
+                        <form class="loginform" id="wf-form-login_form" name="wf-form-login_form" data-name="login_form" action="{% url 'login' %}" method="POST">
+                            {% csrf_token %}
+                            <input class="w-input formtextfield" id="email" type="email" placeholder="Email" name="email" required="required" value="
+                            {% for message in messages %}
+                                {% if 'email' in message.tags %}
+                                    {{ message }}
+                                {% endif %}
+                            {% endfor %}
+                            ">
+                            <input class="w-input formtextfield" id="password" type="password" placeholder="Password" name="password" required="required">
+                            <input class="w-button formsubmitbutton" type="submit" value="Sign in">
+                        </form>
+                    {% endif %}
                 </div>
             </nav>
         </div>

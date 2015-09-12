@@ -1,5 +1,4 @@
 import os
-
 import settings_local as LOCAL
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -21,7 +20,6 @@ INSTALLED_APPS = (
     'django.contrib.staticfiles',
     'api_upload',
     'clipshare',
-    'crispy_forms',
 )
 
 MIDDLEWARE_CLASSES = (
@@ -69,3 +67,8 @@ USE_TZ = True
 
 # Static files (CSS, JavaScript, Images)
 STATIC_URL = '/static/'
+STATIC_ROOT = '/srv/clipshare/static/'
+
+STATICFILES_DIRS = (
+    os.path.join(BASE_DIR, "static"),
+)

@@ -1,12 +1,19 @@
 </html>{% extends 'base.html' %}
 {% block content %}
-    <h3> Index : you appear to be logged in </h3>
+    <div class="section">
+        <div class="w-container">
+            <div class="w-row">
+                <div class="w-col w-col-4">
+                    <h3>WELCOME</h3>
+                    <p> {{ user }}</p>
+                </div>
 
-    {% if user.is_authenticated %}
-        <h1>YEST LOGGED IN!</h1>
-    {% endif %}
+                <div class="w-col w-col-8" style="text-align:left;">
+                    <h3>Signing up gives you access to</h3>
+                    <p> This lists all your files etc </p>
+                </div>
+            </div>
+        </div>
+    </div>
 
-    <p> This lists all your files etc </p>
-
-    <a href="{% url 'logout' %}" class="btn btn-default btn-primary">Logout</a>
 {% endblock %}

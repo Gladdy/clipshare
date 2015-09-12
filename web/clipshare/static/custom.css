@@ -1,0 +1,75 @@
+.nav-bar {
+    background-color: #4A8BBD;
+}
+
+.section.footer{
+    background-color: #336184;
+}
+
+.tablespan{
+    padding:20px;
+}
+
+.steptable{
+    display:inline-table;
+    color: #101010;
+    font-size: 16px;
+    text-align:left;
+    font-family: Montserrat,sans-serif;
+    margin-bottom:80px;
+    margin-top:80px;
+}
+
+@media (max-width: 767px) {
+    .foldcell{
+        visibility: hidden;
+        position:absolute;
+    }
+}
+
+.button {
+    text-transform: none;
+}
+
+.fullwidth {
+    width:100%;
+}
+
+.notransition:hover{
+    background-color: #6d7280;
+}
+
+.tablespacer{
+    height:20px;
+}
+
+.morespace{
+    padding:50px;
+}
+
+.formtextfield, .formsubmitbutton {
+    border-radius:20px;
+}
+
+.formtextfield:focus{
+    border-color:black;
+}
+.formsubmitbutton {
+    background-color:#73b6f1;
+}
+
+.formsubmitbutton:hover {
+    background-color:#336184;
+}
+
+.errorbubble {
+    background-color:#FF4669;
+    border-radius:20px;
+    border: 1px solid #ccc;
+    min-height:40px;
+    line-height:40px;
+}
+
+.errortext {
+    color:#eee;
+}

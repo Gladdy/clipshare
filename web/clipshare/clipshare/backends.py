@@ -9,18 +9,15 @@ class EmailAuthBackend(object):
         """
         Authentication method
         """
-        try:
-            user = User.objects.get(email=email)
-            if user.check_password(password):
-                return user
-        except User.DoesNotExist:
-            return None
+        user = User.objects.get(email=email)
+        if user.check_password(password):
+            return user
+        else:
+            raise User.DoesNotExist
 
     def get_user(self, user_id):
-        try:
-            user = User.objects.get(pk=user_id)
-            if user.is_active:
-                return user
-            return None
-        except User.DoesNotExist:
-            return None
+        user = User.objects.get(pk=user_id)
+        if user.is_active:
+            return user
+        else:
+            raise User.DoesNotExist
