@@ -1,4 +1,5 @@
 #include "settings.h"
+#include "clipshare.h"
 
 #include <QDebug>
 #include <QApplication>
@@ -11,6 +12,8 @@ Settings::Settings(QObject * parent) : StatusReporter(parent) {
 }
 
 Settings::~Settings() {
+  emit triggerHide();
+
   saveToDisk();
   db.close();
 }

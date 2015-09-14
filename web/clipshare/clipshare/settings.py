@@ -10,6 +10,8 @@ ALLOWED_HOSTS = []
 AUTH_USER_MODEL = 'clipshare.User'
 AUTHENTICATION_BACKENDS = ['clipshare.backends.EmailAuthBackend', ]
 
+
+
 # Application definition
 INSTALLED_APPS = (
     'django.contrib.admin',
@@ -18,7 +20,6 @@ INSTALLED_APPS = (
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'api_upload',
     'clipshare',
 )
 
@@ -67,8 +68,13 @@ USE_TZ = True
 
 # Static files (CSS, JavaScript, Images)
 STATIC_URL = '/static/'
-STATIC_ROOT = '/srv/clipshare/static/'
+
+STATIC_DIR = 'static'
+STORAGE_DIR = '/srv/clipshare/'
+
+SITE_URL = 'http://localhost:8000'
 
 STATICFILES_DIRS = (
-    os.path.join(BASE_DIR, "static"),
+    os.path.join(BASE_DIR, STATIC_DIR),
+    STORAGE_DIR,
 )

@@ -12,6 +12,7 @@
 #include <QNetworkAccessManager>
 
 NetworkIO::NetworkIO(Settings *s, QObject *parent) : StatusReporter(parent) {
+
   if (!QSslSocket::supportsSsl()) {
     qDebug() << "SSL UNSUPPORTED!";
     exit(1);
@@ -20,10 +21,8 @@ NetworkIO::NetworkIO(Settings *s, QObject *parent) : StatusReporter(parent) {
   settings = s;
   accessManager = new QNetworkAccessManager(this);
 
-  connect(accessManager, SIGNAL(finished(QNetworkReply *)), this,
-          SLOT(networkFinished(QNetworkReply *)));
-  connect(accessManager, SIGNAL(sslErrors(QNetworkReply *, QList<QSslError>)),
-          this, SLOT(sslErrors(QNetworkReply *, QList<QSslError>)));
+  connect(accessManager, &QNetworkAccessManager::finished, this, &NetworkIO::finished);
+  connect(accessManager, &QNetworkAccessManager::sslErrors, this, &NetworkIO::error_ssl);
 
   // Read the SSL certificate
   QFile file(":/keys/ssl.crt");
@@ -34,164 +33,140 @@ NetworkIO::NetworkIO(Settings *s, QObject *parent) : StatusReporter(parent) {
   const QSslCertificate certificate(bytes);
   QSslSocket::addDefaultCaCertificate(certificate);
 }
-NetworkIO::~NetworkIO() {}
+NetworkIO::~NetworkIO() {
+}
 
-void NetworkIO::processNetworkRequest(QJsonDocument jdoc) {
-  if (jdoc == QJsonDocument()) {
-    qDebug() << "Empty request";
-    return;
-  }
+void NetworkIO::upload(QString location) {
 
   if (currentlyUploading) {
-    emitMessage(Error, "Already uploading a file");
+    emitMessage(Notification, "Already uploading a file");
     return;
   } else {
     currentlyUploading = true;
   }
 
-  QJsonObject jobject = jdoc.object();
-  QString type = jobject["type"].toString();
-
-  if (type == "text") {
-    postRequest(getUrl("content"), extractTextData(jobject), QHttpPart());
-  } else if (type == "file" || type == "image") {
-    QString location = jobject["location"].toString();
-    postRequest(getUrl("content"), extractTextData(jobject),
-                extractFileData(location));
-  } else {
-    emitMessage(Error, tr("Invalid data type"));
-  }
-}
-
-void NetworkIO::checkCredentials() {
-  QJsonObject jobject;
-
-  if (addCredentials(jobject) == true) {
-    postRequest(getUrl("login_api"), extractTextData(jobject), QHttpPart());
-  }
-}
-
-void NetworkIO::abortUpload() {}
-
-bool NetworkIO::addCredentials(QJsonObject &object) {
   QString email = settings->getSetting("email").toString();
-  QString password = settings->getSetting("password").toString();
+  QString pass = settings->getSetting("password").toString();
 
-  if (email.length() == 0 || password.length() == 0) {
-    emitMessage(Error, "Could not find login details");
-    return false;
-  }
+  std::map<QString,QString> text {
+    {"email",email},
+    {"password",pass}
+  };
 
-  object.insert("email", email);
-  object.insert("password", password);
-  return true;
-}
-QList<QHttpPart> NetworkIO::extractTextData(QJsonObject data) {
-  QList<QHttpPart> textParts;
-  QJsonObject::iterator jsonIterator;
-  for (jsonIterator = data.begin(); jsonIterator != data.end();
-       jsonIterator++) {
-    QHttpPart textPart;
-    textPart.setHeader(
-        QNetworkRequest::ContentDispositionHeader,
-        QVariant("form-data; name=\"" + jsonIterator.key() + "\""));
-    textPart.setBody(jsonIterator.value().toString().toLatin1());
-    textParts.append(textPart);
-  }
-
-  return textParts;
-}
-QHttpPart NetworkIO::extractFileData(QString location) {
-  QHttpPart filePart;
-  QFile file(location);
-  QByteArray fileData;
-
-  qDebug() << "File to be added: " << location;
-
-  if (!file.open(QIODevice::ReadOnly)) {
-    emitMessage(Error, "Invalid filename in uploader");
-    return filePart;
-  }
-
-  fileData = file.readAll();
-  file.close();
-
-  QString filename = file.fileName();
-  QMimeDatabase database;
-  QMimeType mimeType = database.mimeTypeForFile(filename);
-
-  QString mimeTypeString = mimeType.name();
-
-  filePart.setHeader(QNetworkRequest::ContentTypeHeader,
-                     QVariant(mimeTypeString));
-  filePart.setHeader(
-      QNetworkRequest::ContentDispositionHeader,
-      QVariant("form-data; name=\"file\"; filename=\"" + filename + "\""));
-  filePart.setBody(fileData);
-
-  return filePart;
+  post(getUrl("/upload/"), text, location);
 }
 
-void NetworkIO::postRequest(QUrl url, QList<QHttpPart> textData,
-                            QHttpPart fileData) {
+void NetworkIO::login() {
+
+  QString email = settings->getSetting("email").toString();
+  QString pass = settings->getSetting("password").toString();
+
+  if(email.length() <= 5 || pass.length() == 0) {
+    emitMessage(Notification, "Please provide login credentials");
+  }
+
+  std::map<QString,QString> text {
+    {"email",email},
+    {"password",pass}
+  };
+
+  post(getUrl("/login-api/"), text, "");
+}
+
+void NetworkIO::abort() {}
+
+void NetworkIO::post(QUrl url, std::map<QString, QString> text, QString location) {
   QNetworkRequest request(url);
   QHttpMultiPart *multiPart = new QHttpMultiPart(QHttpMultiPart::FormDataType);
 
-  if (fileData != QHttpPart()) {
-    textData.append(fileData);
+  // Add all text form elements to the request
+  for(auto& kv : text) {
+    QHttpPart textpart;
+    textpart.setHeader(QNetworkRequest::ContentDispositionHeader,
+                       QVariant("form-data; name=\"" + kv.first + "\""));
+    textpart.setBody(kv.second.toUtf8());
+    multiPart->append(textpart);
   }
 
-  for (QHttpPart part : textData) {
-    multiPart->append(part);
+  // Add the file to the request
+  // Only perform the reading whenever the file actually exists
+  QFile file(location);
+  if(location != "" && file.exists())
+  {
+    if(file.open(QIODevice::ReadOnly)) {
+
+      //Read everything needed from the file
+      QByteArray fileContent = file.readAll();
+      QString filename = file.fileName();
+      QString mimeType = QMimeDatabase().mimeTypeForFile(filename).name();
+
+      file.close();
+
+      //Construct the post request part
+      QHttpPart filePart;
+      filePart.setHeader(QNetworkRequest::ContentTypeHeader, QVariant(mimeType));
+      filePart.setHeader(QNetworkRequest::ContentDispositionHeader,
+            QVariant("form-data; name=\"file\"; filename=\"" + filename + "\""));
+      filePart.setBody(fileContent);
+
+      //Add it to the full request
+      multiPart->append(filePart);
+    }
+    else
+    {
+      emitMessage(Notification, "Unable to open file for uploading");
+    }
   }
 
+  // Perform the post request
   QNetworkReply *reply = accessManager->post(request, multiPart);
 
+  //Delete the multipart whenever the accessmanager stops
   multiPart->setParent(reply);
 
-  connect(reply, SIGNAL(uploadProgress(qint64, qint64)), this,
-          SLOT(networkUpdate(qint64, qint64)));
+  //Connect the progress indicators
+  connect(reply, &QNetworkReply::uploadProgress, this,&NetworkIO::update);
 }
 
-QUrl NetworkIO::getUrl(QString target) {
-  QString connectString = settings->getSetting("hostname").toString();
-  QString urlString = "https://" + connectString + "/" + target;
 
+QUrl NetworkIO::getUrl(QString target) {
+  QString hostname = settings->getSetting("hostname").toString();
+  QString port = settings->getSetting("port").toString();
+  QString protocol = "http";
+
+  QString urlString = protocol + "://" + hostname + ":" + port + target;
   qDebug() << urlString;
 
   return QUrl(urlString);
 }
 
-void NetworkIO::networkFinished(QNetworkReply *reply) {
+void NetworkIO::finished(QNetworkReply *reply) {
   QByteArray responseData = reply->readAll();
+  int statusCode = reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
   reply->deleteLater();
   markFinished();
 
-  qDebug() << "Network reply: " << responseData;
+  qDebug() << "Network reply: "
+           << "status: " << statusCode << "\n"
+           << "length: " << responseData.length() << "\n"
+           << responseData;
 
-  QJsonDocument responseJson = QJsonDocument::fromJson(responseData);
-
-  if (responseJson.isNull()) {
-    emitMessage(Error, tr("Invalid JSON response from server"));
-    return;
-  } else {
-    emitNetworkResponse(responseJson);
-  }
+  emitResult(QString(responseData));
 }
 
-void NetworkIO::networkUpdate(qint64 a, qint64 b) {
+void NetworkIO::update(qint64 a, qint64 b) {
   qDebug() << "Network update: " << a << "\t" << b;
 
   if (currentlyUploading) {
     emitMessage(Progress, QString::number(a) + "\t" + QString::number(b));
   }
 }
-void NetworkIO::networkError(QNetworkReply::NetworkError networkError) {
+void NetworkIO::error(QNetworkReply::NetworkError networkError) {
   qDebug() << "Network error: " << networkError;
   markFinished();
 }
 
-void NetworkIO::sslErrors(QNetworkReply *reply, QList<QSslError> errors) {
+void NetworkIO::error_ssl(QNetworkReply *reply, QList<QSslError> errors) {
   qDebug() << "SSL error: " << reply->readAll() << errors;
   markFinished();
 }

@@ -1,28 +1,7 @@
 from django.contrib.auth.models import AbstractBaseUser, PermissionsMixin
 from django.db import models
-from django.contrib.auth.models import BaseUserManager
-from django.utils import timezone
-
-
-class UserManager(BaseUserManager):
-    def _create_user(self, email, password, is_staff, is_superuser):
-        """
-        Creates and saves a User with the given username, email and password.
-        """
-        user = self.model(email=self.normalize_email(email),
-                          is_staff=is_staff,
-                          is_active=True,
-                          is_superuser=is_superuser,
-                          date_joined=timezone.now())
-        user.set_password(password)
-        user.save(using=self._db)
-        return user
-
-    def create_user(self, email, password=None):
-        return self._create_user(email, password, False, False)
-
-    def create_superuser(self, email, password):
-        return self._create_user(email, password, True, True)
+from django.db.models.manager import Manager
+from clipshare.managers import UserManager, FileManager
 
 
 class User(AbstractBaseUser, PermissionsMixin):
@@ -45,3 +24,23 @@ class User(AbstractBaseUser, PermissionsMixin):
 
     def get_full_name(self):
         return self.email
+
+
+class UserProfile(models.Model):
+    user = models.OneToOneField(User, primary_key=True)
+
+
+
+class File(models.Model):
+    id = models.CharField(max_length=16, primary_key=True)
+    user = models.ForeignKey(User)
+
+    filename = models.TextField()
+    filesize = models.IntegerField()
+    mimetype = models.CharField(max_length=64)
+    location = models.FilePathField()
+    url = models.URLField()
+
+    objects = Manager()
+    manager = FileManager()
+

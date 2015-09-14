@@ -17,6 +17,8 @@ class Aggregator;
 class Window;
 class Settings;
 
+class QFile;
+
 class Clipshare : public QObject {
   Q_OBJECT
 public:
@@ -24,29 +26,22 @@ public:
   ~Clipshare();
 
 signals:
-  void emitNetworkRequest(QJsonDocument);
+  void upload(QString);
   void emitMessage(MessageType, QString message);
 
 public slots:
   void processClipboardChange();
 
-  void processNetworkResponse(QJsonDocument);
+  void processResult(QString);
   void processCommand(CommandType, QString command);
 
-  /**
-   * @brief processMessage
-   * Aggregate all messages
-   * forward them to the GUI
-   */
   void processMessage(MessageType, QString message);
+
 
 private:
   // bool loggedIn = false;
   void setClipboardText(QString url);
   bool ignoreClipboardChange = false;
-
-  // Keep track of the application settings
-  Settings *settings;
 
   // Aggregate the clipboard data into a single file
   Aggregator *aggregator;
@@ -59,6 +54,9 @@ private:
 
   // Times at which the clipboard got triggered
   QList<QTime> clipboardTriggerList;
+
+  // Keep track of the application settings
+  Settings *settings;
 };
 
 #endif // CLIPSHARERUNNER_H

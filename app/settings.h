@@ -20,6 +20,9 @@ public:
   QVariant getSetting(QString);
   void saveSetting(QString, QVariant);
 
+signals:
+  void triggerHide();
+
 private:
   QSqlDatabase db;
 
@@ -30,7 +33,8 @@ private:
   std::map<QString, QVariant> settings {
         { "email", ""},
         { "password", ""},
-        { "hostname", "prostendo.com"},
+        { "hostname", "localhost"},
+        { "port", 8000 },
         { "maxsize", 20000000 },
         { "maxsize_max", 50000000 },
         { "localstorage", true },

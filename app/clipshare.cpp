@@ -27,19 +27,25 @@ Clipshare::Clipshare(QObject *parent) : QObject(parent) {
   connect(QApplication::clipboard(), &QClipboard::dataChanged, this, &Clipshare::processClipboardChange);
 
   // Network connections
-  connect(this, &Clipshare::emitNetworkRequest, network,
-          &NetworkIO::processNetworkRequest);
-  connect(network, &NetworkIO::emitNetworkResponse, this,
-          &Clipshare::processNetworkResponse);
+  connect(this, &Clipshare::upload, network, &NetworkIO::upload);
+  connect(network, &NetworkIO::emitResult, this, &Clipshare::processResult);
 
   // GUI notifications and commands
   connect(this, &Clipshare::emitMessage, window, &Window::processMessage);
   connect(window, &Window::emitCommand, this, &Clipshare::processCommand);
 
+  // Crisply close the app by hiding the sqlite save going on
+  connect(settings, &Settings::triggerHide, window, &Window::hide);
+
   settings->load();
   window->fillFields();
-  network->checkCredentials();
+
+  if(settings->getSetting("email").toString().length() > 5 &&
+     settings->getSetting("password").toString().length() > 3) {
+    network->login();
+  }
 }
+
 void Clipshare::processClipboardChange() {
   qDebug() << "Clipboard changed!";
 
@@ -62,23 +68,40 @@ void Clipshare::processClipboardChange() {
     clipboardTriggerList.removeFirst();
   }
 
+  // Trigger whenever there are at least 2 matching events.
   if (clipboardTriggerList.length() >= 2) {
 
     QString location = aggregator->aggregateClipboard();
 
-
-    //emitNetworkRequest(request);
+    if(location != "")
+    {
+      emit upload(location);
+    }
+    else
+    {
+      emit emitMessage(Notification, "something went wrong in uploading this");
+    }
   }
 }
 
-void Clipshare::processNetworkResponse(QJsonDocument doc) {
+void Clipshare::processResult(QString str) {
+
+  qDebug() << "Processing network response in Clipshare: " << str;
+
+  QJsonDocument doc = QJsonDocument::fromJson(str.toUtf8());
+
+  if(doc.isNull()) {
+    emitMessage(Notification, str);
+    return;
+  }
+
   QJsonObject response = doc.object();
 
-  if (response.contains("loggedin")) {
-    if (response["loggedin"].toBool() == true) {
-      emitMessage(Login, "Correct");
+  if (response.contains("authenticated")) {
+    if (response["authenticated"].toBool() == true) {
+      emitMessage(Login, "true");
     } else {
-      emitMessage(Login, "Incorrect");
+      emitMessage(Login, "false");
     }
   }
 
@@ -87,6 +110,7 @@ void Clipshare::processNetworkResponse(QJsonDocument doc) {
     setClipboardText(url);
     emitMessage(URL, url);
   }
+
 }
 void Clipshare::setClipboardText(QString url) {
   ignoreClipboardChange = true;
@@ -102,8 +126,8 @@ void Clipshare::processMessage(MessageType type, QString message) {
 void Clipshare::processCommand(CommandType type, QString message) {
   switch (type) {
   case Connect:
-    if (message == "CheckCredentials") {
-      network->checkCredentials();
+    if (message == "login") {
+      network->login();
     }
     break;
   }

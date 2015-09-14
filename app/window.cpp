@@ -89,7 +89,7 @@ void Window::fillFields() {
   ui->password_lineEdit->setText(password);
 
   //General page
-  int maxsize = settings->getSetting("maxsize").toInt();
+  int maxsize = settings->getSetting("maxsize").toInt() / 1000; //convert from bytes to KB
   ui->maxsize_lineEdit->setText(QString::number(maxsize));
 
   int triggerperiod = settings->getSetting("triggerperiod").toInt();
@@ -104,6 +104,7 @@ void Window::fillFields() {
   ui->progressbar->setRange(0, progressResolution);
   ui->progressbar->setValue(0);
   ui->progressbar->hide();
+
 
   adjustSize();
 }
@@ -131,7 +132,7 @@ void Window::processMessage(MessageType type, QString message) {
   } break;
 
   case Login:
-    if (message == "Correct") {
+    if (message == "true") {
       showTrayMessage(tr("Logged in"), QSystemTrayIcon::Information);
       setLoginFields(false);
     } else {
@@ -177,7 +178,9 @@ void Window::processRegister() {
   QDesktopServices::openUrl(QUrl("https://" + webLocation));
 }
 void Window::processLogin() {
-  emitCommand(Connect, "CheckCredentials");
+  settings->saveSetting("email", ui->email_lineEdit->text());
+  settings->saveSetting("password", ui->password_lineEdit->text());
+  emitCommand(Connect, "login");
 }
 
 void Window::processOK() {
@@ -197,23 +200,25 @@ bool Window::processApply() {
   //Check and save the maxsize
   check = true;
   QString maxsizeStr = ui->maxsize_lineEdit->text();
-  int maxsize = maxsizeStr.toInt(&check);
+  int maxsize = maxsizeStr.toInt(&check) * 1000; //the field is in KB, this is in bytes
   if(!check || maxsize <= 0 || maxsize > settings->getSetting("maxsize_max").toInt()) {
     setTextStatus(ui->maxsize_lineEdit, false);
     correct = false;
   } else {
     settings->saveSetting("maxsize",maxsize);
+    setTextStatus(ui->maxsize_lineEdit, true);
   }
 
   //Check and save the triggerperiod
   check = true;
   QString triggerperiodStr = ui->triggerperiod_lineEdit->text();
   int triggerperiod = triggerperiodStr.toInt(&check);
-  if(!check || maxsize <= 0) {
+  if(!check || triggerperiod <= 0) {
     setTextStatus(ui->triggerperiod_lineEdit, false);
     correct = false;
   } else {
     settings->saveSetting("triggerperiod",triggerperiod);
+    setTextStatus(ui->triggerperiod_lineEdit, true);
   }
 
   //Check and save the checkboxes
@@ -242,5 +247,7 @@ void Window::showTrayMessage(QString msg, QSystemTrayIcon::MessageIcon messageIc
     gotCriticalError = true;
   }
 
-  trayIcon->showMessage(titleString, msg, messageIcon);
+  if(settings->getSetting("notifications").toBool() == true) {
+    trayIcon->showMessage(titleString, msg, messageIcon);
+  }
 }

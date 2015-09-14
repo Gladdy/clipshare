@@ -4,15 +4,14 @@
 #include "status.h"
 
 #include <QObject>
-#include <QJsonDocument>
 #include <QNetworkReply>
-#include <QJsonObject>
 #include <QNetworkAccessManager>
 #include <QList>
 #include <QSslError>
 #include <QHttpPart>
-#include <QSharedPointer>
 #include <QFile>
+
+#include <map>
 
 class Settings;
 
@@ -23,34 +22,29 @@ public:
   ~NetworkIO();
 
 signals:
-  void emitNetworkResponse(QJsonDocument);
+  void emitResult(QString);
   void emitMessage(MessageType, QString);
 
 public slots:
-  void processNetworkRequest(QJsonDocument);
-  void checkCredentials();
-  void abortUpload();
+  void upload(QString);
+  void login();
+  void abort();
 
 private slots:
-  void networkFinished(QNetworkReply *);
-  void networkUpdate(qint64, qint64);
+  void finished(QNetworkReply *);
+  void update(qint64, qint64);
 
-  void networkError(QNetworkReply::NetworkError);
-  void sslErrors(QNetworkReply *, QList<QSslError>);
+  void error(QNetworkReply::NetworkError);
+  void error_ssl(QNetworkReply *, QList<QSslError>);
 
 private:
-  QList<QHttpPart> extractTextData(QJsonObject data);
-  QHttpPart extractFileData(QString location);
-
-  bool addCredentials(QJsonObject &data);
-  void postRequest(QUrl url, QList<QHttpPart> data, QHttpPart fileData);
+  void post(QUrl, std::map<QString, QString>, QString);
 
   QUrl getUrl(QString target);
 
   bool currentlyUploading = false;
   void markFinished() { currentlyUploading = false; }
 
-  QSharedPointer<QFile> filePointer;
   QNetworkAccessManager *accessManager;
   Settings *settings;
 };
