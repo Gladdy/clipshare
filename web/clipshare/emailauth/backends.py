@@ -1,4 +1,4 @@
-from clipshare.models import User
+from emailauth.models import User
 
 class EmailAuthBackend(object):
     """

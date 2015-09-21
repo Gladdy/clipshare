@@ -41,12 +41,16 @@ private:
   void post(QUrl, std::map<QString, QString>, QString);
 
   QUrl getUrl(QString target);
+  std::map<QString, QString> getCredentials();
 
   bool currentlyUploading = false;
   void markFinished() { currentlyUploading = false; }
 
   QNetworkAccessManager *accessManager;
   Settings *settings;
+
+  const QString loginLink = "/api/login/";
+  const QString uploadLink = "/api/upload/";
 };
 
 #endif // NETWORKMANAGER_H

@@ -15,7 +15,7 @@ class Migration(migrations.Migration):
         migrations.CreateModel(
             name='File',
             fields=[
-                ('id', models.CharField(max_length=16, serialize=False, primary_key=True)),
+                ('id', models.CharField(serialize=False, primary_key=True, max_length=16)),
                 ('filename', models.TextField()),
                 ('filesize', models.IntegerField()),
                 ('mimetype', models.CharField(max_length=64)),

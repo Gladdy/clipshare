@@ -1,5 +1,7 @@
 import os
 import settings_local as LOCAL
+from boto3.session import Session
+
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
@@ -7,8 +9,8 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SECRET_KEY = LOCAL.SECRET_KEY
 DEBUG = True
 ALLOWED_HOSTS = []
-AUTH_USER_MODEL = 'clipshare.User'
-AUTHENTICATION_BACKENDS = ['clipshare.backends.EmailAuthBackend', ]
+AUTH_USER_MODEL = 'emailauth.User'
+AUTHENTICATION_BACKENDS = ['emailauth.backends.EmailAuthBackend', ]
 
 
 
@@ -20,6 +22,8 @@ INSTALLED_APPS = (
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'emailauth',
+    'api',
     'clipshare',
 )
 
@@ -54,8 +58,16 @@ TEMPLATES = [
     },
 ]
 
-# Database
+# Data sources
 DATABASES = LOCAL.DATABASES
+
+# S3
+awssession = Session(aws_access_key_id=LOCAL.AWS_ACCESS_KEY_ID
+                     ,  aws_secret_access_key=LOCAL.AWS_SECRET_ACCESS_KEY
+                     ,  region_name='eu-central-1')
+s3 = awssession.resource('s3')
+AWS_STORAGE_BUCKET_NAME = 'clipshare-storage'
+AWS_S3_ROOT = 'https://s3.amazonaws.com/'
 
 
 # Internationalization
@@ -68,10 +80,8 @@ USE_TZ = True
 
 # Static files (CSS, JavaScript, Images)
 STATIC_URL = '/static/'
-
 STATIC_DIR = 'static'
 STORAGE_DIR = '/srv/clipshare/'
-
 SITE_URL = 'http://localhost:8000'
 
 STATICFILES_DIRS = (

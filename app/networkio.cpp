@@ -45,19 +45,10 @@ void NetworkIO::upload(QString location) {
     currentlyUploading = true;
   }
 
-  QString email = settings->getSetting("email").toString();
-  QString pass = settings->getSetting("password").toString();
-
-  std::map<QString,QString> text {
-    {"email",email},
-    {"password",pass}
-  };
-
-  post(getUrl("/upload/"), text, location);
+  post(getUrl(uploadLink), getCredentials(), location);
 }
 
-void NetworkIO::login() {
-
+std::map<QString, QString> NetworkIO::getCredentials() {
   QString email = settings->getSetting("email").toString();
   QString pass = settings->getSetting("password").toString();
 
@@ -70,7 +61,11 @@ void NetworkIO::login() {
     {"password",pass}
   };
 
-  post(getUrl("/login-api/"), text, "");
+  return text;
+}
+
+void NetworkIO::login() {
+  post(getUrl(loginLink), getCredentials(), "");
 }
 
 void NetworkIO::abort() {}
@@ -128,7 +123,6 @@ void NetworkIO::post(QUrl url, std::map<QString, QString> text, QString location
   connect(reply, &QNetworkReply::uploadProgress, this,&NetworkIO::update);
 }
 
-
 QUrl NetworkIO::getUrl(QString target) {
   QString hostname = settings->getSetting("hostname").toString();
   QString port = settings->getSetting("port").toString();
@@ -161,6 +155,7 @@ void NetworkIO::update(qint64 a, qint64 b) {
     emitMessage(Progress, QString::number(a) + "\t" + QString::number(b));
   }
 }
+
 void NetworkIO::error(QNetworkReply::NetworkError networkError) {
   qDebug() << "Network error: " << networkError;
   markFinished();

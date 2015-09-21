@@ -1,7 +1,7 @@
 from django.contrib.auth.models import AbstractBaseUser, PermissionsMixin
 from django.db import models
-from django.db.models.manager import Manager
-from clipshare.managers import UserManager, FileManager
+
+from emailauth.managers import UserManager
 
 
 class User(AbstractBaseUser, PermissionsMixin):
@@ -28,19 +28,3 @@ class User(AbstractBaseUser, PermissionsMixin):
 
 class UserProfile(models.Model):
     user = models.OneToOneField(User, primary_key=True)
-
-
-
-class File(models.Model):
-    id = models.CharField(max_length=16, primary_key=True)
-    user = models.ForeignKey(User)
-
-    filename = models.TextField()
-    filesize = models.IntegerField()
-    mimetype = models.CharField(max_length=64)
-    location = models.FilePathField()
-    url = models.URLField()
-
-    objects = Manager()
-    manager = FileManager()
-
