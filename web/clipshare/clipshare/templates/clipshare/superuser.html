@@ -4,29 +4,33 @@
         <div class="w-container">
             <div class="w-row">
                 <div class="w-col w-col-4">
-                    <h3>WELCOME SUPERMAN</h3>
+                    <h3>WELCOME</h3>
                     <p> {{ user }}</p>
                 </div>
 
                 <div class="w-col w-col-8" style="text-align:left;">
-                    <div class="w-row">
+                    <h2>Admin panel</h2>
+                    <div class="w-row admin-panel">
                         <h3> File uploader</h3>
                         <form class="w-form" action="{% url 'upload' %}" method="post" enctype="multipart/form-data">
                             <input type="file" name="file">
-                            <input type="submit" value="Upload file!" name="submit">
+                            <input type="hidden" name="indexredirect">
+                            <input class="w-button formsubmitbutton" type="submit" value="Upload file!" name="submit">
                         </form>
                     </div>
-                    <div class="w-row">
+                    <div class="w-row admin-panel">
                         <h3> File display</h3>
-                        <table style="font-size:10pt;">
-                        {% for content in bucketobjects %}
-                            <tr>
-                                <td>
-                                    {{ content.key }}
-                                </td>
-                            </tr>
-                        {% endfor %}
-                        </table>
+                        {% include 'clipshare/filetable.html' %}
+                    </div>
+
+                    <div class="w-row admin-panel dangerous">
+                        <h3> Dangerous buttons</h3>
+                        <form class="w-form" action="{% url 'wipe' %}" method="post">
+                            {% csrf_token %}
+                            <input class="w-input formtextfield" id="source" type="text" name="source" value="{{ randomstring }}">
+                            <input class="w-input formtextfield" id="target" type="text" name="target" required="required" placeholder="Copy the other field">
+                            <input class="w-button formsubmitbutton" type="submit" value="Wipe all" name="submit">
+                        </form>
                     </div>
 
                 </div>

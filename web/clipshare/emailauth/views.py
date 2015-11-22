@@ -71,4 +71,5 @@ def login_view(request):
 
 def logout_view(request):
     logout(request)
+    print("LOGGED OUT")
     return redirect('index')

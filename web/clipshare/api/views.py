@@ -1,6 +1,7 @@
-from django.http import HttpResponse, JsonResponse
+from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_http_methods
+from django.shortcuts import redirect
 
 from emailauth.views import attempt_login
 from api.models import File
@@ -22,6 +23,9 @@ def upload_view(request):
 
         # Attempt storing it
         f = File.manager.store(user, request.FILES['file'])
+
+        if 'indexredirect' in request.POST:
+            return redirect('index')
 
         # Return the url of the resource
         return JsonResponse({'url': f.url}, status=201)

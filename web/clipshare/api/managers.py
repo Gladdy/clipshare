@@ -6,8 +6,7 @@ from django.db import IntegrityError, models
 from clipshare.settings import s3, AWS_STORAGE_BUCKET_NAME, AWS_S3_ROOT
 
 
-def random_id():
-    length = 16
+def random_id(length=8):
     return ''.join(random.choice(string.ascii_letters + string.digits) for i in range(length))
 
 
@@ -17,7 +16,6 @@ class FileManager(models.Manager):
 
         trial = 0
         bucket = s3.Bucket(AWS_STORAGE_BUCKET_NAME)
-        print(bucket)
 
         while trial < 10:
 
@@ -43,7 +41,7 @@ class FileManager(models.Manager):
                 f.save()
 
                 # Actually store the file somewhere on the filesystem
-                s3.Object(bucket.name, key).put(Body=file)
+                s3.Object(bucket.name, key).put(Body=file, ContentType=file.content_type)
 
                 return f
 

@@ -12,7 +12,7 @@
                     <img src="http://uploads.webflow.com/55f1faab76e95c4b0da7d766/8643c589-cd4b-46b1-956b-2eb95815c79c_14-social-facebook.png" width="20">
                 </a>
                 <a class="w-inline-block social-icon" href="http://www.twitter.com/webflowapp" target="_blank">
-                    <img src="http://uploads.webflow.com/55f1faab76e95c4b0da7d766/a1c85180-93b5-44b0-9d23-1cfa6881fdfe_14-social-twitter.png" width="20">
+                    <img src="/static/github-logo.png" width="20">
                 </a>
             </div>
         </div>
@@ -24,3 +24,9 @@
         </div>
     </div>
 </footer>
+
+{% for message in messages %}
+    {% if 'login' in message.tags %}
+        <script>alert("{{ message }}");</script>
+    {% endif %}
+{% endfor %}

@@ -4,6 +4,10 @@ from emailauth.urls import urlpatterns as emailurls
 from api.urls import urlpatterns as apiurls
 from clipshare import views
 
+superurlpatterns = [
+    url(r'^wipeall/$', views.wipe_view, name='wipe'),
+]
+
 urlpatterns = [
     #Index
     url(r'^$', views.index, name='index'),
@@ -13,6 +17,7 @@ urlpatterns = [
 
     #Dynamic pages
     url(r'', include(emailurls)),
+    url(r'^superuser/', include(superurlpatterns)),
 
     #API endpoints
     url(r'^api/', include(apiurls)),
@@ -20,3 +25,4 @@ urlpatterns = [
 
     #url(r'^admin/', include(admin.site.urls)),
 ]
+

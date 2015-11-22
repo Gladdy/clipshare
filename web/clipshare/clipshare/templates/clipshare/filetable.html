@@ -1,0 +1,24 @@
+{% if files %}
+    <p>
+
+    <table>
+        <tr style="font-weight: bold;">
+            <td>Identifier</td>
+            <td>Filename</td>
+            <td>Filesize (bytes)</td>
+            <td>Mimetype</td>
+        </tr>
+        {% for file in files %}
+            <tr>
+                <td>{{ file.id }}</td>
+                <td><a href="{{ file.url }}">{{ file.filename }}</a></td>
+                <td>{{ file.filesize }}</td>
+                <td>{{ file.mimetype }}</td>
+            </tr>
+        {% endfor %}
+    </table>
+
+    </p>
+{% else %}
+    <p>No files in the system</p>
+{% endif %}

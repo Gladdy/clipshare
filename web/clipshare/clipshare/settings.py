@@ -67,7 +67,7 @@ awssession = Session(aws_access_key_id=LOCAL.AWS_ACCESS_KEY_ID
                      ,  region_name='eu-central-1')
 s3 = awssession.resource('s3')
 AWS_STORAGE_BUCKET_NAME = 'clipshare-storage'
-AWS_S3_ROOT = 'https://s3.amazonaws.com/'
+AWS_S3_ROOT = 'https://' + AWS_STORAGE_BUCKET_NAME + '.s3.amazonaws.com/'
 
 
 # Internationalization

@@ -73,3 +73,17 @@
 .errortext {
     color:#eee;
 }
+
+.admin-panel {
+    padding-left: 10px;
+    padding-right: 10px;
+    padding-bottom:10px;
+    margin-bottom:10px;
+    border-radius:20px;
+    border: 1px solid #333;
+}
+
+.dangerous {
+    background-color: #FF5765;
+    border-color: #FF0000;
+}

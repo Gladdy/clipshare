@@ -7,8 +7,12 @@
             </a>
             <nav class="w-col w-col-8 nav-column">
                 <div class="w-form formwrapper">
+
                     {% if user.is_authenticated %}
-                        <a href="{% url 'logout' %}" class="w-button formsubmitbutton">Sign out</a>
+                        <form class="loginform" id="wf-form-login_form" name="wf-form-login_form" data-name="login_form" action="{% url 'logout' %}" method="POST">
+                            {% csrf_token %}
+                            <input class="w-button formsubmitbutton" type="submit" value="Sign out">
+                        </form>
                     {% else %}
                         <form class="loginform" id="wf-form-login_form" name="wf-form-login_form" data-name="login_form" action="{% url 'login' %}" method="POST">
                             {% csrf_token %}
@@ -23,6 +27,7 @@
                             <input class="w-button formsubmitbutton" type="submit" value="Sign in">
                         </form>
                     {% endif %}
+
                 </div>
             </nav>
         </div>
